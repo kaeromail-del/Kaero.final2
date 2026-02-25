@@ -24,14 +24,14 @@
       },
       "env": {
         "NODE_ENV": "production",
-        "EXPO_PUBLIC_API_URL": "https://api.kaero.app/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://kaerofinal2-production.up.railway.app/api/v1"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "NODE_ENV": "production",
-        "EXPO_PUBLIC_API_URL": "https://api.kaero.app/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://kaerofinal2-production.up.railway.app/api/v1"
       }
     }
   },
