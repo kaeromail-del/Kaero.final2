@@ -135,6 +135,7 @@ export const aiApi = {
   analyzeImage: (imageBase64, categoryHint) =>
     api.post('/ai/analyze-image', { image_base64: imageBase64, category_hint: categoryHint }),
   priceSuggest: (data) => api.post('/ai/price-suggest', data),
+  ask: (message) => api.post('/ai/ask', { message }),
 };
 
 // Health
