@@ -1,0 +1,228 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Image,
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from '../../constants/theme';
+import { chatService } from '../../services/chat.service';
+import { useAuthStore } from '../../store/authStore';
+import { Avatar } from '../../components/ui/Avatar';
+
+function timeStr(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString('en-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function dateLabel(dateStr: string): string {
+  const d = new Date(dateStr);
+  const today = new Date();
+  const diff = Math.floor((today.getTime() - d.getTime()) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString('en-EG', { month: 'short', day: 'numeric' });
+}
+
+export default function ChatScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const flatListRef = useRef<FlatList>(null);
+  const [input, setInput] = useState('');
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['chat-messages', id],
+    queryFn: () => chatService.getMessages(id),
+    refetchInterval: 5000,
+    enabled: !!id,
+  });
+
+  const { data: chats } = useQuery({
+    queryKey: ['chats'],
+    queryFn: () => chatService.getChats(),
+  });
+
+  const chat = chats?.find((c: any) => c.id === id);
+  const messages = data?.messages ?? [];
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100);
+    }
+  }, [messages.length]);
+
+  const sendMutation = useMutation({
+    mutationFn: (content: string) => chatService.sendMessage(id, content),
+    onSuccess: () => {
+      setInput('');
+      queryClient.invalidateQueries({ queryKey: ['chat-messages', id] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    },
+  });
+
+  const handleSend = () => {
+    const text = input.trim();
+    if (!text) return;
+    sendMutation.mutate(text);
+  };
+
+  // Group messages by date
+  const grouped: Array<{ type: 'date'; label: string } | { type: 'msg'; msg: any }> = [];
+  let lastDate = '';
+  messages.forEach((msg: any) => {
+    const d = dateLabel(msg.created_at);
+    if (d !== lastDate) {
+      grouped.push({ type: 'date', label: d });
+      lastDate = d;
+    }
+    grouped.push({ type: 'msg', msg });
+  });
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#F5F5F5' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="chevron-back" size={24} color={COLORS.text} />
+        </TouchableOpacity>
+        <Avatar name={chat?.other_user_name} uri={chat?.other_user_avatar} size={38} />
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerName} numberOfLines={1}>{chat?.other_user_name || 'Chat'}</Text>
+          {chat?.listing_title && (
+            <Text style={styles.headerListing} numberOfLines={1}>
+              <Ionicons name="pricetag-outline" size={10} /> {chat.listing_title}
+            </Text>
+          )}
+        </View>
+        {chat?.listing_id && (
+          <TouchableOpacity onPress={() => router.push(`/listing/${chat.listing_id}`)}>
+            <Ionicons name="open-outline" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Messages */}
+      {isLoading ? (
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={grouped}
+          keyExtractor={(item, i) => item.type === 'date' ? `date-${i}` : item.msg.id}
+          contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => {
+            if (item.type === 'date') {
+              return (
+                <View style={styles.dateSep}>
+                  <View style={styles.dateLine} />
+                  <Text style={styles.dateText}>{item.label}</Text>
+                  <View style={styles.dateLine} />
+                </View>
+              );
+            }
+            const msg = item.msg;
+            const isMine = msg.sender_id === user?.id;
+            return (
+              <View style={[styles.msgRow, isMine && styles.msgRowMine]}>
+                {!isMine && <Avatar name={msg.sender_name} uri={msg.sender_avatar} size={28} />}
+                <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
+                  {msg.message_type === 'image' && msg.media_url ? (
+                    <Image source={{ uri: msg.media_url }} style={styles.msgImage} resizeMode="cover" />
+                  ) : (
+                    <Text style={[styles.msgText, isMine && styles.msgTextMine]}>{msg.content}</Text>
+                  )}
+                  <Text style={[styles.msgTime, isMine && styles.msgTimeMine]}>{timeStr(msg.created_at)}</Text>
+                </View>
+              </View>
+            );
+          }}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>👋</Text>
+              <Text style={styles.emptyText}>Start the conversation!</Text>
+            </View>
+          }
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        />
+      )}
+
+      {/* Input */}
+      <View style={[styles.inputBar, { paddingBottom: insets.bottom + SPACING.sm }]}>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.textInput}
+            value={input}
+            onChangeText={setInput}
+            placeholder="Type a message..."
+            placeholderTextColor="#AAA"
+            multiline
+            maxLength={2000}
+            returnKeyType="send"
+            onSubmitEditing={handleSend}
+          />
+          <TouchableOpacity
+            style={[styles.sendBtn, (!input.trim() || sendMutation.isPending) && styles.sendBtnDisabled]}
+            onPress={handleSend}
+            disabled={!input.trim() || sendMutation.isPending}
+          >
+            {sendMutation.isPending
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Ionicons name="send" size={18} color="#fff" />
+            }
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
+    backgroundColor: '#fff', paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md,
+    borderBottomWidth: 1, borderBottomColor: '#F0F0F0', ...SHADOWS.sm,
+  },
+  headerInfo: { flex: 1 },
+  headerName: { fontSize: TYPOGRAPHY.fontSizeMD, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
+  headerListing: { fontSize: 11, color: COLORS.textTertiary, marginTop: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  messagesContent: { padding: SPACING.md, gap: SPACING.sm, paddingBottom: SPACING.xl },
+  dateSep: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, marginVertical: SPACING.md },
+  dateLine: { flex: 1, height: 1, backgroundColor: '#E0E0E0' },
+  dateText: { fontSize: 12, color: COLORS.textTertiary, fontWeight: '500' },
+  msgRow: { flexDirection: 'row', gap: SPACING.xs, alignItems: 'flex-end', marginBottom: 4 },
+  msgRowMine: { flexDirection: 'row-reverse' },
+  bubble: {
+    maxWidth: '75%', padding: SPACING.sm, borderRadius: RADIUS.lg,
+    ...SHADOWS.sm,
+  },
+  bubbleMine: { backgroundColor: COLORS.primary, borderBottomRightRadius: RADIUS.sm },
+  bubbleTheirs: { backgroundColor: '#fff', borderBottomLeftRadius: RADIUS.sm },
+  msgText: { fontSize: TYPOGRAPHY.fontSizeMD, color: COLORS.text, lineHeight: 20 },
+  msgTextMine: { color: '#fff' },
+  msgTime: { fontSize: 10, color: COLORS.textTertiary, marginTop: 3, textAlign: 'right' },
+  msgTimeMine: { color: 'rgba(255,255,255,0.7)' },
+  msgImage: { width: 200, height: 200, borderRadius: RADIUS.sm },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+  emptyIcon: { fontSize: 48, marginBottom: SPACING.md },
+  emptyText: { color: COLORS.textSecondary, fontSize: TYPOGRAPHY.fontSizeMD },
+  inputBar: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: SPACING.sm, paddingHorizontal: SPACING.md },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: SPACING.sm },
+  textInput: {
+    flex: 1, borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: RADIUS.xl,
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
+    fontSize: TYPOGRAPHY.fontSizeMD, color: COLORS.text,
+    maxHeight: 100,
+  },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
+  sendBtnDisabled: { opacity: 0.4 },
+});

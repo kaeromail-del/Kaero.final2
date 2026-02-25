@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "Kaero",
+    "slug": "kaero",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "kaero",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#00A651"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/173e7d84-e71a-424a-96c0-7b0df7d45954"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kaero.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Kaero uses your camera to take photos of items you want to sell.",
+        "NSLocationWhenInUseUsageDescription": "Kaero uses your location to show nearby listings.",
+        "NSPhotoLibraryUsageDescription": "Kaero uses your photo library for ID verification.",
+        "NSMicrophoneUsageDescription": "Kaero uses the microphone for voice search and voice messages."
+      }
+    },
+    "android": {
+      "package": "com.kaero.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#00A651"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-camera",
+      "expo-location",
+      "expo-image-picker",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#00A651"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "173e7d84-e71a-424a-96c0-7b0df7d45954"
+      }
+    }
+  }
+}

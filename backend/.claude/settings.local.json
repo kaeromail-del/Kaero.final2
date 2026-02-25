@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(npm install:*)",
+      "Bash(wc -l c:/Users/anasr/Desktop/kaero-v51/mobile/app/dispute/[id].tsx c:/Users/anasr/Desktop/kaero-v51/mobile/app/transaction/[id].tsx c:/Users/anasr/Desktop/kaero-v51/mobile/app/offer/new.tsx)"
+    ]
+  }
+}

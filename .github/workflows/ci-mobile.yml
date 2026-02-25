@@ -1,0 +1,28 @@
+name: CI Mobile
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'mobile/**' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'mobile/**' ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: mobile/package-lock.json
+    - name: Install dependencies
+      run: cd mobile && npm ci --legacy-peer-deps
+    - name: Lint
+      run: cd mobile && npm run lint
+    - name: Type check
+      run: cd mobile && npm run typecheck
