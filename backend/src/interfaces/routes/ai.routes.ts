@@ -183,7 +183,7 @@ router.post('/voice-search', requireAuth, async (req: AuthRequest, res: Response
   } catch (err) { next(err); }
 });
 
-// POST /api/v1/ai/ask  — Kaero conversational AI assistant (Claude)
+// POST /api/v1/ai/ask  — Kaero conversational AI assistant (GPT-4o-mini)
 router.post('/ask', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { message } = z.object({ message: z.string().min(1).max(1000) }).parse(req.body);
@@ -193,9 +193,9 @@ router.post('/ask', requireAuth, async (req: AuthRequest, res: Response, next: N
     const user = await queryOne<any>('SELECT ai_conversation FROM users WHERE id = $1', [userId]);
     const history: Array<{ role: string; content: string }> = user?.ai_conversation ?? [];
 
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    if (!anthropicKey) {
-      const reply = `أهلاً! أنا مساعد كايرو الذكي. سألتَ: "${message}". في الإنتاج سأعطيك إجابة مفصّلة. مفتاح API غير مُهيَّأ.`;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) {
+      const reply = `أهلاً! أنا مساعد كايرو الذكي. سألتَ: "${message}". يرجى تهيئة OPENAI_API_KEY لتفعيل المساعد.`;
       return res.json({ reply, mock: true });
     }
 
@@ -212,29 +212,31 @@ Key platform facts:
 - Disputes: buyers can open a dispute within 3 days of confirming receipt with photo evidence
 - Safety: meet in public, verify item before paying, use escrow never bank transfer outside app
 
-Answer in the same language the user writes in (Arabic or English). Be concise, friendly, and accurate. If you don't know something specific, say so honestly.`;
+Answer in the same language the user writes in (Arabic or English). Be concise, friendly, and accurate.`;
 
-    const recentHistory = history.slice(-18); // keep last 18 to stay well within tokens
-    const messages = [...recentHistory, { role: 'user', content: message }];
+    const recentHistory = history.slice(-18);
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...recentHistory,
+      { role: 'user', content: message },
+    ];
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${openaiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'gpt-4o-mini',
         max_tokens: 600,
-        system: systemPrompt,
         messages,
       }),
     });
 
     if (!response.ok) throw new AppError('AI service unavailable', 503);
     const data = await response.json() as any;
-    const reply: string = data.content?.[0]?.text ?? 'عذراً، لم أتمكن من معالجة طلبك. حاول مرة أخرى.';
+    const reply: string = data.choices?.[0]?.message?.content ?? 'عذراً، لم أتمكن من معالجة طلبك. حاول مرة أخرى.';
 
     // Persist rolling history (cap at 20 messages = 10 turns)
     const updatedHistory = [
