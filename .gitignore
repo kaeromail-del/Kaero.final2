@@ -1,11 +1,33 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
 build/
+.expo/
+.expo-shared/
+
+# Environment files — NEVER commit these
 .env
 .env.local
 .env.*.local
+
+# Logs
 *.log
+npm-debug.log*
+
+# OS
 .DS_Store
 Thumbs.db
-.expo/
-.expo-shared/
+
+# Editor
+.vscode/
+.claude/
+*.bak
+*.swp
+
+# Misc
+preview.html
+t.txt
+writer.js
+RAILWAY_ENV.txt
