@@ -482,8 +482,8 @@ CREATE INDEX IF NOT EXISTS idx_transactions_buyer_id
 CREATE INDEX IF NOT EXISTS idx_transactions_seller_id
   ON transactions(seller_id);
 
-CREATE INDEX IF NOT EXISTS idx_transactions_status
-  ON transactions(status);
+CREATE INDEX IF NOT EXISTS idx_transactions_payment_status
+  ON transactions(payment_status);
 
 CREATE INDEX IF NOT EXISTS idx_transactions_listing_id
   ON transactions(listing_id);
@@ -509,7 +509,7 @@ CREATE INDEX IF NOT EXISTS idx_user_listing_views_user_id
 
 -- Chats / messages
 CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_id
-  ON chat_messages(chat_id, created_at DESC);
+  ON messages(chat_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_chats_participants
   ON chats(buyer_id, seller_id);

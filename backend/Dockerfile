@@ -23,8 +23,8 @@ RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 # Copy compiled output only (tsc puts everything in dist/)
 COPY --from=builder /app/dist ./dist
 
-# Copy public uploads folder
-COPY --from=builder /app/public ./public
+# Create uploads directory (files are written here at runtime)
+RUN mkdir -p ./public/uploads
 
 EXPOSE 3000
 
