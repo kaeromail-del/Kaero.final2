@@ -3,10 +3,10 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --ignore-scripts
 
-COPY . .
+COPY backend/ .
 RUN npm run build
 
 # ── Production stage ─────────────────────────────────────────
@@ -17,7 +17,7 @@ WORKDIR /app
 # curl is needed for the HEALTHCHECK
 RUN apk add --no-cache curl
 
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # Copy compiled output only (tsc puts everything in dist/)
