@@ -226,7 +226,11 @@ export default function SearchScreen() {
           numColumns={2}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => <ListingCard item={item} />}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => router.push(`/listing/${item.id}` as any)} activeOpacity={0.9}>
+              <ListingCard item={item} />
+            </TouchableOpacity>
+          )}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>🔍</Text>

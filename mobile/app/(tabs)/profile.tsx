@@ -231,8 +231,8 @@ export default function ProfileScreen() {
           { icon: 'shield-checkmark-outline',   label: 'Verify My ID',      action: () => router.push('/verify-id' as any) },
           { icon: 'document-text-outline',      label: 'Privacy Policy',    action: () => router.push('/privacy-policy' as any) },
           { icon: 'shield-outline',             label: 'Terms of Service',  action: () => router.push('/terms' as any) },
-          { icon: 'help-circle-outline',        label: 'Help & Support',    action: () => {} },
-          { icon: 'information-circle-outline', label: 'About Kaero',       action: () => {} },
+          { icon: 'help-circle-outline',        label: 'Help & Support',    action: () => Alert.alert('Help & Support', 'Contact us at support@kaero.app\nWhatsApp: +20 100 000 0000', [{text: 'OK'}]) },
+          { icon: 'information-circle-outline', label: 'About Kaero',       action: () => Alert.alert('About Kaero', 'Kaero v1.0.0\nEgypt\'s trusted marketplace.\nBuy & sell locally with AI-powered protection.', [{text: 'OK'}]) },
         ].map((item) => (
           <TouchableOpacity key={item.label} style={styles.actionRow} onPress={item.action}>
             <View style={styles.settingLeft}>
