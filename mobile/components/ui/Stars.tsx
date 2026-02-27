@@ -9,9 +9,9 @@ export function Stars({ rating, size = 14, showNumber = false, count }: StarsPro
   return (
     <View style={styles.row}>
       {stars.map((s, i) => (
-        <Text key={i} style={{ fontSize: size, color: i < Math.round(rating) ? COLORS.accent : '#DDD' }}>{s}</Text>
+        <Text key={i} style={{ fontSize: size, color: i < Math.round(rating) ? COLORS.accent : COLORS.borderLight }}>{s}</Text>
       ))}
-      {showNumber && <Text style={{ fontSize: size, color: '#666', marginLeft: 4 }}>{rating.toFixed(1)}{count !== undefined ? ` (${count})` : ''}</Text>}
+      {showNumber && <Text style={{ fontSize: size, color: COLORS.textSecondary, marginLeft: 4 }}>{rating.toFixed(1)}{count !== undefined ? ` (${count})` : ''}</Text>}
     </View>
   );
 }

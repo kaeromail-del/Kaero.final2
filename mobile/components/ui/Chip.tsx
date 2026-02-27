@@ -16,8 +16,8 @@ export function Chip({ children, active, onPress, color = COLORS.primary, small 
   );
 }
 const styles = StyleSheet.create({
-  chip: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: RADIUS.full, borderWidth: 1, borderColor: '#DDD', backgroundColor: '#fff' },
+  chip: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.borderLight, backgroundColor: COLORS.cardBg },
   small: { paddingHorizontal: SPACING.sm, paddingVertical: 3 },
-  text: { fontSize: TYPOGRAPHY.fontSizeSM, color: '#555', fontWeight: TYPOGRAPHY.fontWeightMedium },
+  text: { fontSize: TYPOGRAPHY.fontSizeSM, color: COLORS.iconDefault, fontWeight: TYPOGRAPHY.fontWeightMedium },
   smallText: { fontSize: TYPOGRAPHY.fontSizeXS },
 });

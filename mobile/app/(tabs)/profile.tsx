@@ -173,7 +173,7 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.trustDivider} />
           <View style={styles.trustMember}>
-            <Ionicons name="calendar-outline" size={18} color={COLORS.textSecondary} />
+            <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
             <Text style={styles.trustLabel}>Since {memberSince}</Text>
           </View>
         </View>
@@ -221,25 +221,25 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         {[
-          { icon: 'heart-outline',              label: 'Saved Listings',    action: () => router.push('/favorites') },
-          { icon: 'pricetag-outline',           label: 'My Offers',         action: () => router.push('/offers' as any) },
-          { icon: 'receipt-outline',            label: 'My Transactions',   action: () => router.push('/transactions' as any) },
-          { icon: 'wallet-outline',             label: 'My Wallet',         action: () => router.push('/wallet' as any) },
-          { icon: 'gift-outline',               label: 'Refer & Earn',      action: () => router.push('/referral' as any) },
-          { icon: 'notifications-outline',      label: 'Notifications',     action: () => router.push('/notifications') },
-          { icon: 'sparkles-outline',           label: 'AI Assistant',      action: () => router.push('/ai-assistant' as any) },
-          { icon: 'shield-checkmark-outline',   label: 'Verify My ID',      action: () => router.push('/verify-id' as any) },
-          { icon: 'document-text-outline',      label: 'Privacy Policy',    action: () => router.push('/privacy-policy' as any) },
-          { icon: 'shield-outline',             label: 'Terms of Service',  action: () => router.push('/terms' as any) },
-          { icon: 'help-circle-outline',        label: 'Help & Support',    action: () => Alert.alert('Help & Support', 'Contact us at support@kaero.app\nWhatsApp: +20 100 000 0000', [{text: 'OK'}]) },
-          { icon: 'information-circle-outline', label: 'About Kaero',       action: () => Alert.alert('About Kaero', 'Kaero v1.0.0\nEgypt\'s trusted marketplace.\nBuy & sell locally with AI-powered protection.', [{text: 'OK'}]) },
+          { icon: 'heart-outline', label: 'Saved Listings', action: () => router.push('/favorites') },
+          { icon: 'pricetag-outline', label: 'My Offers', action: () => router.push('/offers' as any) },
+          { icon: 'receipt-outline', label: 'My Transactions', action: () => router.push('/transactions' as any) },
+          { icon: 'wallet-outline', label: 'My Wallet', action: () => router.push('/wallet' as any) },
+          { icon: 'gift-outline', label: 'Refer & Earn', action: () => router.push('/referral' as any) },
+          { icon: 'notifications-outline', label: 'Notifications', action: () => router.push('/notifications') },
+          { icon: 'sparkles-outline', label: 'AI Assistant', action: () => router.push('/ai-assistant' as any) },
+          { icon: 'shield-checkmark-outline', label: 'Verify My ID', action: () => router.push('/verify-id' as any) },
+          { icon: 'document-text-outline', label: 'Privacy Policy', action: () => router.push('/privacy-policy' as any) },
+          { icon: 'shield-outline', label: 'Terms of Service', action: () => router.push('/terms' as any) },
+          { icon: 'help-circle-outline', label: 'Help & Support', action: () => Alert.alert('Help & Support', 'Contact us at support@kaero.app\nWhatsApp: +20 100 000 0000', [{ text: 'OK' }]) },
+          { icon: 'information-circle-outline', label: 'About Kaero', action: () => Alert.alert('About Kaero', 'Kaero v1.0.0\nEgypt\'s trusted marketplace.\nBuy & sell locally with AI-powered protection.', [{ text: 'OK' }]) },
         ].map((item) => (
           <TouchableOpacity key={item.label} style={styles.actionRow} onPress={item.action}>
             <View style={styles.settingLeft}>
-              <Ionicons name={item.icon as any} size={20} color={COLORS.textSecondary} />
+              <Ionicons name={item.icon as any} size={20} color={COLORS.primary} />
               <Text style={styles.settingLabel}>{item.label}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#CCC" />
+            <Ionicons name="chevron-forward" size={16} color={COLORS.iconDefault} />
           </TouchableOpacity>
         ))}
       </View>
@@ -255,8 +255,8 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  profileCard: { backgroundColor: '#fff', padding: SPACING.lg, ...SHADOWS.sm, marginBottom: SPACING.sm },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  profileCard: { backgroundColor: COLORS.cardBg, padding: SPACING.lg, ...SHADOWS.sm, marginBottom: SPACING.sm },
   avatarSection: { flexDirection: 'row', gap: SPACING.md, marginBottom: SPACING.md },
   avatarWrap: { position: 'relative' },
   cameraOverlay: {
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   saveText: { color: '#fff', fontWeight: '700' },
   editBtn: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, alignSelf: 'flex-start' },
   editBtnText: { color: COLORS.primary, fontWeight: '600' },
-  section: { backgroundColor: '#fff', padding: SPACING.lg, marginBottom: SPACING.sm },
+  section: { backgroundColor: COLORS.cardBg, padding: SPACING.lg, marginBottom: SPACING.sm },
   sectionTitle: { fontSize: TYPOGRAPHY.fontSizeSM, fontWeight: TYPOGRAPHY.fontWeightSemiBold, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: SPACING.md },
   trustRow: { flexDirection: 'row', justifyContent: 'space-around' },
   trustScore: { alignItems: 'center', gap: 4 },
@@ -289,20 +289,20 @@ const styles = StyleSheet.create({
   trustMember: { alignItems: 'center', gap: 4 },
   trustNumber: { fontSize: TYPOGRAPHY.fontSizeXXL, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
   trustLabel: { fontSize: 12, color: COLORS.textSecondary },
-  trustDivider: { width: 1, backgroundColor: '#F0F0F0' },
+  trustDivider: { width: 1, backgroundColor: COLORS.separator },
   settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: SPACING.sm },
   settingLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
   settingLabel: { fontSize: TYPOGRAPHY.fontSizeMD, color: COLORS.text },
   langRow: { flexDirection: 'row', gap: SPACING.xs },
-  langBtn: { width: 36, height: 32, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: '#DDD', alignItems: 'center', justifyContent: 'center' },
+  langBtn: { width: 36, height: 32, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.borderLight, alignItems: 'center', justifyContent: 'center' },
   langActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
   langText: { fontSize: TYPOGRAPHY.fontSizeSM, color: COLORS.textSecondary, fontWeight: '600' },
   langActiveText: { color: COLORS.primary },
-  actionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: SPACING.md, borderTopWidth: 1, borderTopColor: '#F5F5F5' },
+  actionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: SPACING.md, borderTopWidth: 1, borderTopColor: COLORS.separator },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm,
     backgroundColor: '#FEF2F2', margin: SPACING.lg, padding: SPACING.md, borderRadius: RADIUS.md,
   },
   logoutText: { color: COLORS.error, fontWeight: '700', fontSize: TYPOGRAPHY.fontSizeMD },
-  version: { textAlign: 'center', color: '#CCC', fontSize: 12, paddingBottom: 100 },
+  version: { textAlign: 'center', color: COLORS.iconDefault, fontSize: 12, paddingBottom: 100 },
 });

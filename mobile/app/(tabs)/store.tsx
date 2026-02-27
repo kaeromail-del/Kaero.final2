@@ -59,7 +59,7 @@ export default function StoreScreen() {
             </View>
           </View>
           <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-            <Ionicons name="settings-outline" size={22} color={COLORS.textSecondary} />
+            <Ionicons name="settings-outline" size={22} color={COLORS.iconDefault} />
           </TouchableOpacity>
         </View>
 
@@ -151,7 +151,7 @@ export default function StoreScreen() {
               <Text style={styles.emptyIcon}>{statusFilter === 'sold' ? '🎉' : '📦'}</Text>
               <Text style={styles.emptyTitle}>
                 {statusFilter === 'active' ? 'No active listings' :
-                 statusFilter === 'sold' ? 'No sales yet' : 'Nothing reserved'}
+                  statusFilter === 'sold' ? 'No sales yet' : 'Nothing reserved'}
               </Text>
               {statusFilter === 'active' && (
                 <TouchableOpacity style={styles.sellBtn} onPress={() => router.push('/(tabs)/sell')}>
@@ -169,8 +169,8 @@ export default function StoreScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  header: { backgroundColor: '#fff', padding: SPACING.lg, ...SHADOWS.sm },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: { backgroundColor: COLORS.cardBg, padding: SPACING.lg, ...SHADOWS.sm },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, marginBottom: SPACING.lg },
   headerInfo: { flex: 1 },
   name: { fontSize: TYPOGRAPHY.fontSizeLG, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
@@ -178,18 +178,18 @@ const styles = StyleSheet.create({
   verifiedBadge: { backgroundColor: COLORS.primaryLight, borderRadius: RADIUS.sm, paddingHorizontal: 6, paddingVertical: 2 },
   verifiedText: { color: COLORS.primary, fontSize: 11, fontWeight: '600' },
   trust: { fontSize: TYPOGRAPHY.fontSizeSM, color: COLORS.textSecondary },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingTop: SPACING.md, borderTopWidth: 1, borderTopColor: '#F0F0F0' },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingTop: SPACING.md, borderTopWidth: 1, borderTopColor: COLORS.separator },
   stat: { alignItems: 'center', gap: 2 },
   statValue: { fontSize: TYPOGRAPHY.fontSizeXL, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
   statLabel: { fontSize: 11, color: COLORS.textSecondary },
-  tabsRow: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  tabsRow: { flexDirection: 'row', backgroundColor: COLORS.cardBg, borderBottomWidth: 1, borderBottomColor: COLORS.separator },
   tab: { flex: 1, paddingVertical: SPACING.md, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: COLORS.primary },
   tabText: { fontSize: TYPOGRAPHY.fontSizeMD, color: COLORS.textSecondary, fontWeight: TYPOGRAPHY.fontWeightMedium },
   tabTextActive: { color: COLORS.primary, fontWeight: TYPOGRAPHY.fontWeightBold },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   listContent: { padding: SPACING.md, gap: SPACING.sm, paddingBottom: 100 },
-  listingCard: { backgroundColor: '#fff', borderRadius: RADIUS.md, flexDirection: 'row', overflow: 'hidden', ...SHADOWS.sm },
+  listingCard: { backgroundColor: COLORS.cardBg, borderRadius: RADIUS.md, flexDirection: 'row', overflow: 'hidden', ...SHADOWS.sm },
   conditionStripe: { width: 5 },
   cardContent: { flex: 1, padding: SPACING.md },
   listingTitle: { fontSize: TYPOGRAPHY.fontSizeMD, fontWeight: TYPOGRAPHY.fontWeightMedium, color: COLORS.text, marginBottom: SPACING.xs },

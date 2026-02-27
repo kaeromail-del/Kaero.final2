@@ -16,8 +16,8 @@ export function TopBar({ title, onBack, right, transparent, showBack = true }: T
       <View style={styles.row}>
         {showBack
           ? <TouchableOpacity onPress={handleBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="chevron-back" size={24} color={transparent ? '#fff' : COLORS.text} />
-            </TouchableOpacity>
+            <Ionicons name="chevron-back" size={24} color={transparent ? '#fff' : COLORS.text} />
+          </TouchableOpacity>
           : <View style={styles.backBtn} />
         }
         {title && <Text style={[styles.title, transparent && { color: '#fff' }]} numberOfLines={1}>{title}</Text>}
@@ -27,7 +27,7 @@ export function TopBar({ title, onBack, right, transparent, showBack = true }: T
   );
 }
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#fff', paddingHorizontal: SPACING.lg, paddingBottom: SPACING.sm, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  container: { backgroundColor: COLORS.cardBg, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.separator },
   transparent: { backgroundColor: 'transparent', borderBottomWidth: 0 },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
   backBtn: { width: 40 },

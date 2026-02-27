@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  TextInput, ActivityIndicator, Alert, Modal,
+  TextInput, ActivityIndicator, Alert, Modal, RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,19 +13,19 @@ import { walletService, WalletTx } from '../services/wallet.service';
 // ─── Helpers ─────────────────────────────────────────────
 
 const TX_CONFIG: Record<string, { icon: string; color: string; sign: string }> = {
-  credit:         { icon: 'arrow-down-circle',   color: COLORS.success,  sign: '+' },
-  debit:          { icon: 'arrow-up-circle',      color: COLORS.error,    sign: '-' },
-  fee:            { icon: 'remove-circle',        color: '#6B7280',       sign: '-' },
-  withdrawal:     { icon: 'cash-outline',         color: '#7C3AED',       sign: '-' },
-  referral_bonus: { icon: 'gift',                 color: '#F59E0B',       sign: '+' },
-  promo_credit:   { icon: 'ticket',               color: COLORS.primary,  sign: '+' },
+  credit: { icon: 'arrow-down-circle', color: COLORS.success, sign: '+' },
+  debit: { icon: 'arrow-up-circle', color: COLORS.error, sign: '-' },
+  fee: { icon: 'remove-circle', color: '#6B7280', sign: '-' },
+  withdrawal: { icon: 'cash-outline', color: '#7C3AED', sign: '-' },
+  referral_bonus: { icon: 'gift', color: '#F59E0B', sign: '+' },
+  promo_credit: { icon: 'ticket', color: COLORS.primary, sign: '+' },
 };
 
 const METHOD_LABELS: Record<string, { label: string; icon: string; placeholder: string }> = {
-  bank_transfer:  { label: 'Bank Transfer',    icon: '🏦', placeholder: 'Account number + bank name' },
-  vodafone_cash:  { label: 'Vodafone Cash',    icon: '📱', placeholder: 'Vodafone number (01X-XXXXXXXX)' },
-  instapay:       { label: 'InstaPay',         icon: '⚡', placeholder: 'InstaPay ID or phone' },
-  fawry:          { label: 'Fawry',            icon: '🟠', placeholder: 'Fawry reference number' },
+  bank_transfer: { label: 'Bank Transfer', icon: '🏦', placeholder: 'Account number + bank name' },
+  vodafone_cash: { label: 'Vodafone Cash', icon: '📱', placeholder: 'Vodafone number (01X-XXXXXXXX)' },
+  instapay: { label: 'InstaPay', icon: '⚡', placeholder: 'InstaPay ID or phone' },
+  fawry: { label: 'Fawry', icon: '🟠', placeholder: 'Fawry reference number' },
 };
 
 function TxRow({ tx }: { tx: WalletTx }) {
@@ -218,8 +218,9 @@ export default function WalletScreen() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
-        onRefresh={refetch}
-        refreshing={isRefetching}
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.primary} />
+        }
         scrollEventThrottle={16}
       >
         {/* Balance card */}
@@ -287,7 +288,7 @@ export default function WalletScreen() {
               <ActivityIndicator color={COLORS.primary} style={{ padding: SPACING.xl }} />
             ) : !data?.recent_transactions?.length ? (
               <View style={styles.empty}>
-                <Ionicons name="wallet-outline" size={40} color="#CCC" />
+                <Ionicons name="wallet-outline" size={40} color={COLORS.iconDefault} />
                 <Text style={styles.emptyText}>No wallet activity yet</Text>
                 <Text style={styles.emptySubText}>Earnings from sales will appear here</Text>
               </View>
@@ -302,7 +303,7 @@ export default function WalletScreen() {
           <View style={styles.listCard}>
             {!withdrawals?.length ? (
               <View style={styles.empty}>
-                <Ionicons name="cash-outline" size={40} color="#CCC" />
+                <Ionicons name="cash-outline" size={40} color={COLORS.iconDefault} />
                 <Text style={styles.emptyText}>No withdrawals yet</Text>
               </View>
             ) : (
@@ -360,11 +361,11 @@ export default function WalletScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#fff', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-    borderBottomWidth: 1, borderBottomColor: '#F0F0F0', ...SHADOWS.sm,
+    backgroundColor: COLORS.cardBg, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    borderBottomWidth: 1, borderBottomColor: COLORS.separator, ...SHADOWS.sm,
   },
   headerTitle: { fontSize: TYPOGRAPHY.fontSizeLG, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
   scroll: { padding: SPACING.md, gap: SPACING.sm, paddingBottom: 60 },
@@ -382,21 +383,21 @@ const styles = StyleSheet.create({
   withdrawBtnText: { color: '#fff', fontWeight: TYPOGRAPHY.fontWeightBold, fontSize: TYPOGRAPHY.fontSizeMD },
 
   // Stats
-  statsRow: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: RADIUS.md, padding: SPACING.lg, ...SHADOWS.sm },
+  statsRow: { flexDirection: 'row', backgroundColor: COLORS.cardBg, borderRadius: RADIUS.md, padding: SPACING.lg, ...SHADOWS.sm },
   statBox: { flex: 1, alignItems: 'center' },
   statAmount: { fontSize: TYPOGRAPHY.fontSizeXL, fontWeight: '900', color: COLORS.text },
   statLabel: { fontSize: 11, color: COLORS.textTertiary, marginTop: 2, textAlign: 'center' },
-  statDivider: { width: 1, backgroundColor: '#F0F0F0' },
+  statDivider: { width: 1, backgroundColor: COLORS.separator },
 
   // Tabs
-  tabs: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: RADIUS.md, padding: 4, ...SHADOWS.sm },
+  tabs: { flexDirection: 'row', backgroundColor: COLORS.cardBg, borderRadius: RADIUS.md, padding: 4, ...SHADOWS.sm },
   tab: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: RADIUS.sm - 2 },
   tabActive: { backgroundColor: COLORS.primary },
   tabText: { fontSize: TYPOGRAPHY.fontSizeSM, color: COLORS.textSecondary, fontWeight: '600' },
   tabTextActive: { color: '#fff', fontWeight: TYPOGRAPHY.fontWeightBold },
 
   // List
-  listCard: { backgroundColor: '#fff', borderRadius: RADIUS.md, ...SHADOWS.sm, overflow: 'hidden' },
+  listCard: { backgroundColor: COLORS.cardBg, borderRadius: RADIUS.md, ...SHADOWS.sm, overflow: 'hidden' },
   empty: { padding: SPACING.xl * 1.5, alignItems: 'center', gap: SPACING.sm },
   emptyText: { fontSize: TYPOGRAPHY.fontSizeMD, fontWeight: '600', color: COLORS.textSecondary },
   emptySubText: { fontSize: 13, color: COLORS.textTertiary, textAlign: 'center' },
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
   withdrawRowLeft: { gap: 2 },
   withdrawAmount: { fontSize: TYPOGRAPHY.fontSizeMD, fontWeight: '700', color: COLORS.text },
   withdrawMethod: { fontSize: 12, color: COLORS.textTertiary },
-  withdrawStatus: { backgroundColor: '#F3F4F6', borderRadius: RADIUS.xs, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-end' },
+  withdrawStatus: { backgroundColor: '#F3F4F6', borderRadius: RADIUS.sm, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-end' },
   withdrawStatusDone: { backgroundColor: '#ECFDF5' },
   withdrawStatusRejected: { backgroundColor: '#FEF2F2' },
   withdrawStatusText: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary },
@@ -428,8 +429,8 @@ const styles = StyleSheet.create({
   infoDesc: { fontSize: 12, color: COLORS.primaryDark, lineHeight: 16 },
 
   // Modal
-  modalContainer: { flex: 1, backgroundColor: '#fff' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.lg, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  modalContainer: { flex: 1, backgroundColor: COLORS.cardBg },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.lg, borderBottomWidth: 1, borderBottomColor: COLORS.separator },
   modalTitle: { fontSize: TYPOGRAPHY.fontSizeLG, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
   modalScroll: { flex: 1 },
   modalBalance: { backgroundColor: COLORS.primaryLight, borderRadius: RADIUS.md, padding: SPACING.lg, alignItems: 'center' },

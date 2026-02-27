@@ -19,9 +19,9 @@ import { aiService } from '../../services/ai.service';
 
 const SORT_OPTIONS = [
   { value: 'distance', label: 'Nearest' },
-  { value: 'newest',   label: 'Newest' },
-  { value: 'price',    label: 'Price' },
-  { value: 'for_you',  label: 'For You' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'price', label: 'Price' },
+  { value: 'for_you', label: 'For You' },
 ] as const;
 
 const CAIRO = { lat: 30.0444, lng: 31.2357 };
@@ -35,8 +35,8 @@ export default function MarketScreen() {
   const effectiveCoords = coords ?? CAIRO;
 
   const [selectedCat, setSelectedCat] = useState<number | null>(null);
-  const [sort, setSort]                = useState<'distance' | 'newest' | 'price' | 'for_you'>('newest');
-  const [viewMode, setViewMode]        = useState<'list' | 'map'>('list');
+  const [sort, setSort] = useState<'distance' | 'newest' | 'price' | 'for_you'>('newest');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   React.useEffect(() => { if (!coords) requestLocation(); }, []);
 
@@ -125,14 +125,14 @@ export default function MarketScreen() {
               <Ionicons name="mic" size={20} color={COLORS.primary} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.headerIconBtn}>
-              <Ionicons name="notifications-outline" size={20} color={COLORS.text} />
+              <Ionicons name="notifications-outline" size={20} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Search bar */}
         <TouchableOpacity style={styles.searchBar} onPress={() => router.push('/search')} activeOpacity={0.8}>
-          <Ionicons name="search" size={18} color="#AAA" />
+          <Ionicons name="search" size={18} color={COLORS.iconDefault} />
           <Text style={styles.searchPlaceholder}>Search phones, laptops, cars...</Text>
         </TouchableOpacity>
       </View>
@@ -182,13 +182,13 @@ export default function MarketScreen() {
             style={[styles.viewBtn, viewMode === 'list' && styles.viewBtnActive]}
             onPress={() => setViewMode('list')}
           >
-            <Ionicons name="grid-outline" size={16} color={viewMode === 'list' ? COLORS.primary : '#999'} />
+            <Ionicons name="grid-outline" size={16} color={viewMode === 'list' ? COLORS.primary : COLORS.iconDefault} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.viewBtn, viewMode === 'map' && styles.viewBtnActive]}
             onPress={() => setViewMode('map')}
           >
-            <Ionicons name="map-outline" size={16} color={viewMode === 'map' ? COLORS.primary : '#999'} />
+            <Ionicons name="map-outline" size={16} color={viewMode === 'map' ? COLORS.primary : COLORS.iconDefault} />
           </TouchableOpacity>
         </View>
       </View>
@@ -313,8 +313,8 @@ function getCatEmoji(name: string): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  header: { backgroundColor: '#fff', paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md, ...SHADOWS.sm },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: { backgroundColor: COLORS.cardBg, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md, ...SHADOWS.sm },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: SPACING.sm },
   greeting: { fontSize: TYPOGRAPHY.fontSizeLG, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
@@ -323,31 +323,31 @@ const styles = StyleSheet.create({
   headerIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: '#F5F5F5', borderRadius: RADIUS.md,
+    backgroundColor: COLORS.searchBg, borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md, height: 44,
   },
-  searchPlaceholder: { color: '#AAA', fontSize: TYPOGRAPHY.fontSizeMD, flex: 1 },
+  searchPlaceholder: { color: COLORS.iconDefault, fontSize: TYPOGRAPHY.fontSizeMD, flex: 1 },
   catsScroll: { flexGrow: 0 },
   catsContainer: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, gap: SPACING.sm },
   catChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.full, borderWidth: 1, borderColor: '#DDD',
-    backgroundColor: '#fff',
+    borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.borderLight,
+    backgroundColor: COLORS.cardBg,
   },
   catChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   catEmoji: { fontSize: 14 },
-  catText: { fontSize: TYPOGRAPHY.fontSizeSM, color: '#555', fontWeight: TYPOGRAPHY.fontWeightMedium },
+  catText: { fontSize: TYPOGRAPHY.fontSizeSM, color: COLORS.iconDefault, fontWeight: TYPOGRAPHY.fontWeightMedium },
   catTextActive: { color: '#fff' },
   sortRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.xs },
   resultsCount: { fontSize: 12, color: COLORS.textSecondary },
   sortBtns: { flexDirection: 'row', gap: SPACING.xs },
   sortBtn: { paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: RADIUS.sm },
   sortBtnActive: { backgroundColor: COLORS.primaryLight },
-  sortText: { fontSize: 12, color: '#999' },
+  sortText: { fontSize: 12, color: COLORS.iconDefault },
   sortTextActive: { color: COLORS.primary, fontWeight: '600' },
-  viewToggle: { flexDirection: 'row', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: RADIUS.sm, overflow: 'hidden' },
-  viewBtn: { width: 30, height: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  viewToggle: { flexDirection: 'row', borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: RADIUS.sm, overflow: 'hidden' },
+  viewBtn: { width: 30, height: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.cardBg },
   viewBtnActive: { backgroundColor: COLORS.primaryLight },
   map: { flex: 1 },
   priceBubble: {

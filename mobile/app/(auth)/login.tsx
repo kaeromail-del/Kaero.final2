@@ -47,7 +47,7 @@ export default function LoginScreen() {
             <TextInput
               style={styles.input} value={phone} onChangeText={t => { setPhone(t); setError(''); }}
               placeholder="01012345678" keyboardType="phone-pad" maxLength={11} autoFocus
-              placeholderTextColor="#AAA"
+              placeholderTextColor={COLORS.iconDefault}
             />
           </View>
           {!!error && <Text style={styles.errorText}>{error}</Text>}
@@ -68,7 +68,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#fff', paddingHorizontal: SPACING.xxl },
+  container: { flexGrow: 1, backgroundColor: COLORS.cardBg, paddingHorizontal: SPACING.xxl },
   logoContainer: { alignItems: 'center', marginBottom: 48 },
   logoCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   logoText: { color: '#fff', fontSize: 40, fontWeight: '800' },
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   tagline: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
   form: { gap: SPACING.md },
   label: { fontSize: TYPOGRAPHY.fontSizeMD, fontWeight: TYPOGRAPHY.fontWeightSemiBold, color: COLORS.text },
-  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#DDD', borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, height: 54 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: COLORS.borderLight, borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, height: 54 },
   inputError: { borderColor: COLORS.error },
   flag: { fontSize: 14, color: COLORS.textSecondary, marginRight: SPACING.sm },
   input: { flex: 1, fontSize: TYPOGRAPHY.fontSizeLG, color: COLORS.text, letterSpacing: 1 },
@@ -84,6 +84,6 @@ const styles = StyleSheet.create({
   btn: { height: 54, backgroundColor: COLORS.primary, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center', marginTop: SPACING.sm },
   btnDisabled: { opacity: 0.5 },
   btnText: { color: '#fff', fontSize: TYPOGRAPHY.fontSizeLG, fontWeight: TYPOGRAPHY.fontWeightBold },
-  terms: { textAlign: 'center', color: '#999', fontSize: 12, marginTop: SPACING.xxl, lineHeight: 18 },
+  terms: { textAlign: 'center', color: COLORS.iconDefault, fontSize: 12, marginTop: SPACING.xxl, lineHeight: 18 },
   link: { color: COLORS.primary, fontWeight: '600' },
 });

@@ -55,7 +55,7 @@ export function ListingCard({ item, compact }: ListingCardProps) {
         <Text style={styles.price}>{item.final_price?.toLocaleString()} EGP</Text>
         {item.distance_km !== undefined && (
           <Text style={styles.meta}>
-            <Ionicons name="location-outline" size={11} color="#999" />
+            <Ionicons name="location-outline" size={11} color={COLORS.iconDefault} />
             {' '}{item.distance_km < 1 ? `${Math.round(item.distance_km * 1000)}m` : `${item.distance_km.toFixed(1)} km`}
           </Text>
         )}
@@ -65,11 +65,11 @@ export function ListingCard({ item, compact }: ListingCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#fff', borderRadius: RADIUS.lg, overflow: 'hidden', ...SHADOWS.sm, width: '48%' },
+  card: { backgroundColor: COLORS.cardBg, borderRadius: RADIUS.lg, overflow: 'hidden', ...SHADOWS.sm, width: '48%' },
   compact: { width: '100%', flexDirection: 'row', height: 100 },
   imageContainer: { position: 'relative' },
   compactImgContainer: {},
-  image: { width: '100%', height: 160, backgroundColor: '#F0F0F0' },
+  image: { width: '100%', height: 160, backgroundColor: COLORS.borderLight },
   compactImage: { width: 100, height: 100 },
   favBtn: { position: 'absolute', top: SPACING.sm, right: SPACING.sm, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: RADIUS.full, padding: 5 },
   conditionBadge: { position: 'absolute', bottom: SPACING.sm, left: SPACING.sm, borderRadius: RADIUS.sm, paddingHorizontal: 6, paddingVertical: 2 },

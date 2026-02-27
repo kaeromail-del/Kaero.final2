@@ -11,14 +11,14 @@ import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from '../constants/theme
 import { notificationService } from '../services/notification.service';
 
 const TYPE_CONFIG: Record<string, { icon: string; color: string; bg: string }> = {
-  new_offer:        { icon: 'pricetag',          color: '#6366F1', bg: '#EEF2FF' },
-  offer_accepted:   { icon: 'checkmark-circle',  color: '#22C55E', bg: '#F0FDF4' },
-  offer_rejected:   { icon: 'close-circle',      color: '#EF4444', bg: '#FEF2F2' },
-  new_message:      { icon: 'chatbubble',         color: '#3B82F6', bg: '#EFF6FF' },
-  payment_received: { icon: 'cash',              color: '#10B981', bg: '#ECFDF5' },
-  listing_sold:     { icon: 'bag-check',         color: '#F59E0B', bg: '#FFFBEB' },
-  review_received:  { icon: 'star',              color: '#F59E0B', bg: '#FFFBEB' },
-  default:          { icon: 'notifications',     color: '#6B7280', bg: '#F9FAFB' },
+  new_offer: { icon: 'pricetag', color: '#6366F1', bg: '#EEF2FF' },
+  offer_accepted: { icon: 'checkmark-circle', color: '#22C55E', bg: '#F0FDF4' },
+  offer_rejected: { icon: 'close-circle', color: '#EF4444', bg: '#FEF2F2' },
+  new_message: { icon: 'chatbubble', color: '#3B82F6', bg: '#EFF6FF' },
+  payment_received: { icon: 'cash', color: '#10B981', bg: '#ECFDF5' },
+  listing_sold: { icon: 'bag-check', color: '#F59E0B', bg: '#FFFBEB' },
+  review_received: { icon: 'star', color: '#F59E0B', bg: '#FFFBEB' },
+  default: { icon: 'notifications', color: '#6B7280', bg: '#F9FAFB' },
 };
 
 function timeAgo(dateStr: string): string {
@@ -83,7 +83,7 @@ export default function NotificationsScreen() {
         <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
       ) : notifications.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="notifications-off-outline" size={56} color="#D1D5DB" />
+          <Ionicons name="notifications-off-outline" size={56} color={COLORS.iconDefault} />
           <Text style={styles.emptyTitle}>No notifications yet</Text>
           <Text style={styles.emptyText}>We'll notify you about offers, messages, and transactions.</Text>
         </View>
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F0F0F0', ...SHADOWS.sm,
+    backgroundColor: COLORS.cardBg, borderBottomWidth: 1, borderBottomColor: COLORS.separator, ...SHADOWS.sm,
   },
   headerCenter: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   headerTitle: { fontSize: TYPOGRAPHY.fontSizeLG, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   list: { padding: SPACING.md, gap: SPACING.sm },
   item: {
     flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.md,
-    backgroundColor: '#fff', borderRadius: RADIUS.lg, padding: SPACING.md, ...SHADOWS.sm,
+    backgroundColor: COLORS.cardBg, borderRadius: RADIUS.lg, padding: SPACING.md, ...SHADOWS.sm,
   },
   itemUnread: { backgroundColor: '#FAFBFF', borderLeftWidth: 3, borderLeftColor: COLORS.primary },
   iconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

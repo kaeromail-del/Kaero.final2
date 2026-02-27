@@ -23,6 +23,12 @@ export const COLORS = {
   darkBorder: '#333333',
   darkText: '#F5F5F5',
   darkTextSecondary: '#AAAAAA',
+  // Unified icon & UI tokens (70/30 rule)
+  iconDefault: '#8E8E93',
+  iconActive: '#00A651',
+  searchBg: '#F0F2F5',
+  separator: '#F0F0F0',
+  cardBg: '#FFFFFF',
 };
 
 export const TYPOGRAPHY = {

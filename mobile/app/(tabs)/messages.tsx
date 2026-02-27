@@ -84,14 +84,14 @@ export default function MessagesScreen() {
                     <Text style={styles.chatTime}>{item.last_message_at ? timeAgo(item.last_message_at) : ''}</Text>
                   </View>
                   <Text style={styles.listingTitle} numberOfLines={1}>
-                    <Ionicons name="pricetag-outline" size={11} color="#AAA" /> {item.listing_title}
+                    <Ionicons name="pricetag-outline" size={11} color={COLORS.iconDefault} /> {item.listing_title}
                   </Text>
                   <View style={styles.chatBottom}>
                     <Text style={[styles.lastMsg, unread > 0 && styles.lastMsgBold]} numberOfLines={1}>
                       {isLastMine ? 'You: ' : ''}
                       {item.last_message_type === 'image' ? '📷 Photo' :
-                       item.last_message_type === 'voice' ? '🎤 Voice message' :
-                       item.last_message || 'Start a conversation'}
+                        item.last_message_type === 'voice' ? '🎤 Voice message' :
+                          item.last_message || 'Start a conversation'}
                     </Text>
                     {unread > 0 && (
                       <View style={styles.badge}>
@@ -122,11 +122,11 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: COLORS.cardBg },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
     paddingHorizontal: SPACING.lg, paddingVertical: SPACING.lg,
-    borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
+    borderBottomWidth: 1, borderBottomColor: COLORS.separator,
   },
   title: { fontSize: TYPOGRAPHY.fontSizeXXL, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
   unreadBadge: { backgroundColor: COLORS.primary, borderRadius: RADIUS.full, paddingHorizontal: 8, paddingVertical: 2 },
@@ -134,10 +134,10 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   chatItem: {
     flexDirection: 'row', padding: SPACING.lg, gap: SPACING.md,
-    borderBottomWidth: 1, borderBottomColor: '#F5F5F5',
+    borderBottomWidth: 1, borderBottomColor: COLORS.separator,
   },
   avatarContainer: { position: 'relative' },
-  dot: { position: 'absolute', top: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primary, borderWidth: 2, borderColor: '#fff' },
+  dot: { position: 'absolute', top: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primary, borderWidth: 2, borderColor: COLORS.cardBg },
   chatInfo: { flex: 1 },
   chatTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
   chatName: { fontSize: TYPOGRAPHY.fontSizeMD, color: COLORS.text },

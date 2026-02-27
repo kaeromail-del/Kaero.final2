@@ -9,11 +9,11 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: '#999',
+        tabBarInactiveTintColor: COLORS.iconDefault,
         tabBarStyle: {
           height: 64, paddingBottom: 8, paddingTop: 8,
-          borderTopWidth: 1, borderTopColor: '#F0F0F0',
-          backgroundColor: '#fff', elevation: 8,
+          borderTopWidth: 1, borderTopColor: COLORS.separator,
+          backgroundColor: COLORS.cardBg, elevation: 8,
           shadowColor: '#000', shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.08, shadowRadius: 8,
         },

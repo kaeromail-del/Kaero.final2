@@ -224,7 +224,7 @@ export default function SellScreen() {
             onChangeText={setTitle}
             placeholder="What are you selling?"
             maxLength={80}
-            placeholderTextColor="#AAA"
+            placeholderTextColor={COLORS.iconDefault}
           />
           <Text style={styles.charCount}>{title.length}/80</Text>
         </View>
@@ -240,7 +240,7 @@ export default function SellScreen() {
             multiline
             numberOfLines={4}
             maxLength={1000}
-            placeholderTextColor="#AAA"
+            placeholderTextColor={COLORS.iconDefault}
             textAlignVertical="top"
           />
         </View>
@@ -269,7 +269,7 @@ export default function SellScreen() {
               onChangeText={v => { setPrice(v); setPriceSuggestion(null); }}
               placeholder="0"
               keyboardType="numeric"
-              placeholderTextColor="#AAA"
+              placeholderTextColor={COLORS.iconDefault}
             />
             <Text style={styles.currency}>EGP</Text>
           </View>
@@ -332,7 +332,7 @@ export default function SellScreen() {
             <Text style={selectedCategory ? styles.selectValue : styles.selectPlaceholder}>
               {selectedCategory ? selectedCategory.name_en : 'Select a category'}
             </Text>
-            <Ionicons name="chevron-down" size={18} color="#AAA" />
+            <Ionicons name="chevron-down" size={18} color={COLORS.iconDefault} />
           </TouchableOpacity>
         </View>
 
@@ -382,11 +382,11 @@ export default function SellScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  header: { backgroundColor: '#fff', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.lg, ...SHADOWS.sm },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: { backgroundColor: COLORS.cardBg, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.lg, ...SHADOWS.sm },
   headerTitle: { fontSize: TYPOGRAPHY.fontSizeXL, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
   headerSub: { fontSize: TYPOGRAPHY.fontSizeSM, color: COLORS.textSecondary, marginTop: 2 },
-  section: { backgroundColor: '#fff', padding: SPACING.lg, marginTop: SPACING.sm },
+  section: { backgroundColor: COLORS.cardBg, padding: SPACING.lg, marginTop: SPACING.sm },
   sectionLabel: { fontSize: TYPOGRAPHY.fontSizeSM, fontWeight: TYPOGRAPHY.fontWeightSemiBold, color: COLORS.textSecondary, marginBottom: SPACING.sm, textTransform: 'uppercase', letterSpacing: 0.5 },
   photosRow: { gap: SPACING.sm },
   photoThumb: { width: 100, height: 100, borderRadius: RADIUS.md, overflow: 'hidden', position: 'relative' },
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSizeMD, color: COLORS.text,
   },
   textArea: { height: 100, paddingTop: SPACING.md },
-  charCount: { textAlign: 'right', fontSize: 11, color: '#AAA', marginTop: 4 },
+  charCount: { textAlign: 'right', fontSize: 11, color: COLORS.iconDefault, marginTop: 4 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   priceInput: { flex: 1 },
   currency: { fontSize: TYPOGRAPHY.fontSizeLG, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.textSecondary },
@@ -433,10 +433,10 @@ const styles = StyleSheet.create({
   conditionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   conditionBtn: {
     paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.full, borderWidth: 1.5, borderColor: '#DDD',
+    borderRadius: RADIUS.full, borderWidth: 1.5, borderColor: COLORS.borderLight,
   },
   conditionActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
-  conditionText: { fontSize: TYPOGRAPHY.fontSizeSM, color: '#555', fontWeight: TYPOGRAPHY.fontWeightMedium },
+  conditionText: { fontSize: TYPOGRAPHY.fontSizeSM, color: COLORS.iconDefault, fontWeight: TYPOGRAPHY.fontWeightMedium },
   conditionTextActive: { color: COLORS.primary, fontWeight: TYPOGRAPHY.fontWeightBold },
   selectBtn: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md, height: 50,
   },
   selectValue: { fontSize: TYPOGRAPHY.fontSizeMD, color: COLORS.text },
-  selectPlaceholder: { fontSize: TYPOGRAPHY.fontSizeMD, color: '#AAA' },
+  selectPlaceholder: { fontSize: TYPOGRAPHY.fontSizeMD, color: COLORS.iconDefault },
   footer: { padding: SPACING.lg, paddingBottom: 100 },
   postBtn: {
     backgroundColor: COLORS.primary, borderRadius: RADIUS.md, height: 56,
@@ -458,10 +458,10 @@ const styles = StyleSheet.create({
   captureBtn: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#fff', borderWidth: 4, borderColor: 'rgba(255,255,255,0.5)' },
   cameraHint: { textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontSize: 12, paddingBottom: SPACING.lg },
   // Modal
-  modal: { flex: 1, backgroundColor: '#fff' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.lg, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  modal: { flex: 1, backgroundColor: COLORS.cardBg },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.lg, borderBottomWidth: 1, borderBottomColor: COLORS.separator },
   modalTitle: { fontSize: TYPOGRAPHY.fontSizeXL, fontWeight: TYPOGRAPHY.fontWeightBold },
-  catItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.lg, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
+  catItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.lg, borderBottomWidth: 1, borderBottomColor: COLORS.separator },
   catItemActive: { backgroundColor: COLORS.primaryLight },
   catItemText: { fontSize: TYPOGRAPHY.fontSizeMD, color: COLORS.text },
 });
