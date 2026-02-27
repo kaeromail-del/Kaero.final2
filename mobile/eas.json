@@ -23,7 +23,6 @@
         "buildType": "apk"
       },
       "env": {
-        "NODE_ENV": "production",
         "EXPO_PUBLIC_API_URL": "https://kaerofinal2-production.up.railway.app/api/v1"
       }
     },
