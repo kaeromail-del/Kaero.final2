@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { COLORS, SPACING, TYPOGRAPHY } from '../../constants/theme';
+import { COLORS, SPACING, TYPOGRAPHY, RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 interface TopBarProps { title?: string; onBack?: () => void; right?: React.ReactNode; transparent?: boolean; showBack?: boolean; }
@@ -27,10 +27,10 @@ export function TopBar({ title, onBack, right, transparent, showBack = true }: T
   );
 }
 const styles = StyleSheet.create({
-  container: { backgroundColor: COLORS.cardBg, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.separator },
+  container: { backgroundColor: COLORS.surface, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.separator },
   transparent: { backgroundColor: 'transparent', borderBottomWidth: 0 },
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
-  backBtn: { width: 40 },
-  title: { flex: 1, textAlign: 'center', fontSize: TYPOGRAPHY.fontSizeLG, fontWeight: TYPOGRAPHY.fontWeightSemiBold, color: COLORS.text },
-  right: { width: 40, alignItems: 'flex-end' },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 46 },
+  backBtn: { width: 36, height: 36, borderRadius: RADIUS.full, backgroundColor: COLORS.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  title: { flex: 1, textAlign: 'center', fontSize: TYPOGRAPHY.fontSizeLG, fontWeight: TYPOGRAPHY.fontWeightSemiBold, color: COLORS.text, letterSpacing: TYPOGRAPHY.letterSpacingTight },
+  right: { width: 36, alignItems: 'flex-end' },
 });

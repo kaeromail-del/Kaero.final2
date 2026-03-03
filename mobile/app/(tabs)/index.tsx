@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from '../../constants/theme';
+import { COLORS, SPACING, TYPOGRAPHY, RADIUS } from '../../constants/theme';
 import { listingService } from '../../services/listing.service';
 import { categoryService } from '../../services/category.service';
 import { useAuthStore } from '../../store/authStore';
@@ -122,10 +122,10 @@ export default function MarketScreen() {
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={() => router.push('/search')} style={styles.headerIconBtn}>
-              <Ionicons name="mic" size={20} color={COLORS.primary} />
+              <Ionicons name="search-outline" size={20} color={COLORS.iconDefault} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.headerIconBtn}>
-              <Ionicons name="notifications-outline" size={20} color={COLORS.primary} />
+              <Ionicons name="notifications-outline" size={20} color={COLORS.iconDefault} />
             </TouchableOpacity>
           </View>
         </View>
@@ -314,40 +314,41 @@ function getCatEmoji(name: string): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { backgroundColor: COLORS.cardBg, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md, ...SHADOWS.sm },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: SPACING.sm },
-  greeting: { fontSize: TYPOGRAPHY.fontSizeLG, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
-  locationText: { fontSize: 12, color: COLORS.textSecondary, maxWidth: 200 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  headerIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
+  header: { backgroundColor: COLORS.surface, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.separator },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm, paddingTop: SPACING.xs },
+  greeting: { fontSize: TYPOGRAPHY.fontSizeXL, fontWeight: TYPOGRAPHY.fontWeightBold, color: COLORS.text, letterSpacing: TYPOGRAPHY.letterSpacingTight },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
+  locationText: { fontSize: TYPOGRAPHY.fontSizeXS, color: COLORS.textSecondary, maxWidth: 200, letterSpacing: TYPOGRAPHY.letterSpacingWide },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  headerIconBtn: { width: 38, height: 38, borderRadius: RADIUS.full, backgroundColor: COLORS.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: COLORS.searchBg, borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.md, height: 44,
+    backgroundColor: COLORS.surfaceAlt, borderRadius: RADIUS.xl,
+    paddingHorizontal: SPACING.md, height: 46,
+    borderWidth: 1, borderColor: COLORS.borderLight,
   },
-  searchPlaceholder: { color: COLORS.iconDefault, fontSize: TYPOGRAPHY.fontSizeMD, flex: 1 },
-  catsScroll: { flexGrow: 0 },
+  searchPlaceholder: { color: COLORS.textPlaceholder, fontSize: TYPOGRAPHY.fontSizeMD, flex: 1, letterSpacing: TYPOGRAPHY.letterSpacingNormal },
+  catsScroll: { flexGrow: 0, backgroundColor: COLORS.surface },
   catsContainer: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, gap: SPACING.sm },
   catChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.borderLight,
-    backgroundColor: COLORS.cardBg,
+    paddingHorizontal: SPACING.md, paddingVertical: 7,
+    borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
   catChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   catEmoji: { fontSize: 14 },
-  catText: { fontSize: TYPOGRAPHY.fontSizeSM, color: COLORS.iconDefault, fontWeight: TYPOGRAPHY.fontWeightMedium },
-  catTextActive: { color: '#fff' },
-  sortRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.xs },
-  resultsCount: { fontSize: 12, color: COLORS.textSecondary },
-  sortBtns: { flexDirection: 'row', gap: SPACING.xs },
-  sortBtn: { paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: RADIUS.sm },
+  catText: { fontSize: TYPOGRAPHY.fontSizeSM, color: COLORS.textSecondary, fontWeight: TYPOGRAPHY.fontWeightMedium, letterSpacing: TYPOGRAPHY.letterSpacingNormal },
+  catTextActive: { color: '#fff', fontWeight: TYPOGRAPHY.fontWeightSemiBold },
+  sortRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 8, backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.separator },
+  resultsCount: { fontSize: TYPOGRAPHY.fontSizeXS, color: COLORS.textTertiary, fontWeight: TYPOGRAPHY.fontWeightMedium, letterSpacing: TYPOGRAPHY.letterSpacingWide },
+  sortBtns: { flexDirection: 'row', gap: 2 },
+  sortBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.full },
   sortBtnActive: { backgroundColor: COLORS.primaryLight },
-  sortText: { fontSize: 12, color: COLORS.iconDefault },
-  sortTextActive: { color: COLORS.primary, fontWeight: '600' },
-  viewToggle: { flexDirection: 'row', borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: RADIUS.sm, overflow: 'hidden' },
-  viewBtn: { width: 30, height: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.cardBg },
+  sortText: { fontSize: TYPOGRAPHY.fontSizeXS, color: COLORS.textTertiary, fontWeight: TYPOGRAPHY.fontWeightMedium },
+  sortTextActive: { color: COLORS.primary, fontWeight: TYPOGRAPHY.fontWeightSemiBold },
+  viewToggle: { flexDirection: 'row', borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, overflow: 'hidden' },
+  viewBtn: { width: 32, height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface },
   viewBtnActive: { backgroundColor: COLORS.primaryLight },
   map: { flex: 1 },
   priceBubble: {
