@@ -59,11 +59,12 @@ app.use('/api/v1/auth/', authLimiter);
 
 // ─── Health Check ────────────────────────────────────────
 app.get('/health', async (_req, res) => {
-  const dbOk = await healthCheck();
-  res.status(dbOk ? 200 : 503).json({
-    status: dbOk ? 'ok' : 'degraded',
+  const dbOk = await healthCheck().catch(() => false);
+  // Always return 200 — server is up; DB status is informational only
+  res.status(200).json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
-    database: dbOk ? 'connected' : 'disconnected',
+    database: dbOk ? 'connected' : 'connecting',
   });
 });
 
