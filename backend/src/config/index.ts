@@ -39,6 +39,12 @@ export const config = {
     enabled: !!(process.env.PAYMOB_API_KEY && process.env.PAYMOB_INTEGRATION_ID),
   },
 
+  supabase: {
+    url: process.env.SUPABASE_URL || '',
+    anonKey: process.env.SUPABASE_ANON_KEY || '',
+    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  },
+
   platform: {
     feePercent: parseFloat(process.env.PLATFORM_FEE_PERCENT || '4') / 100,
     minWithdrawal: parseInt(process.env.MIN_WITHDRAWAL_EGP || '100', 10),
