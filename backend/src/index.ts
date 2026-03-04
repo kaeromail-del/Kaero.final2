@@ -3,6 +3,7 @@ import app from './app';
 import { config } from './config';
 import { initSocket } from './infrastructure/socket/socket.service';
 import { query } from './infrastructure/database/pool';
+import { runMigrations } from './infrastructure/database/migrate';
 
 const server = http.createServer(app);
 initSocket(server);
@@ -45,7 +46,6 @@ async function runExpireJobs() {
     );
     if (autoReleased.length > 0) {
       console.log(`[CRON] Auto-released ${autoReleased.length} escrow(s)`);
-      // Mark listings as sold
       for (const tx of autoReleased as any[]) {
         await query(`UPDATE listings SET status = 'sold' WHERE id = $1`, [tx.listing_id]);
       }
@@ -55,11 +55,20 @@ async function runExpireJobs() {
   }
 }
 
-// Run every hour
 const CRON_INTERVAL_MS = 60 * 60 * 1000;
 
-server.listen(config.port, () => {
-  console.log(`
+// ─── Startup ──────────────────────────────────────────────
+
+async function start() {
+  // Run DB migration — server starts regardless of outcome
+  try {
+    await runMigrations();
+  } catch (err) {
+    console.error('[STARTUP] Migration failed (server will still start):', err);
+  }
+
+  server.listen(config.port, () => {
+    console.log(`
   ╔══════════════════════════════════════╗
   ║   KAERO API v0.51                    ║
   ║   Port: ${config.port}                        ║
@@ -68,7 +77,12 @@ server.listen(config.port, () => {
   ╚══════════════════════════════════════╝
   `);
 
-  // Run immediately on boot, then every hour
-  runExpireJobs();
-  setInterval(runExpireJobs, CRON_INTERVAL_MS);
+    runExpireJobs();
+    setInterval(runExpireJobs, CRON_INTERVAL_MS);
+  });
+}
+
+start().catch((err) => {
+  console.error('[FATAL] Server failed to start:', err);
+  process.exit(1);
 });

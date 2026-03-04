@@ -536,24 +536,31 @@ DROP FUNCTION IF EXISTS update_listing_search_vector CASCADE;
 DROP FUNCTION IF EXISTS update_timestamp CASCADE;
 `;
 
-async function main() {
-  const direction = process.argv[2];
-
-  if (direction === 'down') {
-    console.log('⬇ Rolling back migration...');
-    await pool.query(DOWN);
-    console.log('✓ Rollback complete.');
-  } else {
-    console.log('⬆ Running migration...');
-    await pool.query(UP);
-    console.log('✓ Migration complete.');
-  }
-
-  await pool.end();
-  process.exit(0);
+/** Exported for use by index.ts on startup */
+export async function runMigrations(): Promise<void> {
+  console.log('⬆ Running migration...');
+  await pool.query(UP);
+  console.log('✓ Migration complete.');
 }
 
-main().catch((err) => {
-  console.error('Migration failed:', err);
-  process.exit(1);
-});
+// Allow running directly: node dist/infrastructure/database/migrate.js [down]
+if (require.main === module) {
+  (async () => {
+    const direction = process.argv[2];
+    try {
+      if (direction === 'down') {
+        console.log('⬇ Rolling back migration...');
+        await pool.query(DOWN);
+        console.log('✓ Rollback complete.');
+      } else {
+        await runMigrations();
+      }
+      await pool.end();
+      process.exit(0);
+    } catch (err) {
+      console.error('Migration failed:', err);
+      await pool.end();
+      process.exit(1);
+    }
+  })();
+}

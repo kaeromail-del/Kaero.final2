@@ -28,4 +28,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-CMD ["sh", "-c", "node dist/infrastructure/database/migrate.js && node dist/index.js"]
+CMD ["node", "dist/index.js"]
