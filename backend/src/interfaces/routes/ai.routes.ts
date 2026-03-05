@@ -33,9 +33,10 @@ const router = Router();
 // POST /api/v1/ai/analyze-image
 router.post('/analyze-image', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { image_base64, category_hint } = z.object({
+    const { image_base64, category_hint, voice_transcript } = z.object({
       image_base64: z.string(),
       category_hint: z.string().optional(),
+      voice_transcript: z.string().optional(),
     }).parse(req.body);
 
     const openaiKey = process.env.OPENAI_API_KEY;
@@ -59,6 +60,7 @@ router.post('/analyze-image', requireAuth, async (req: AuthRequest, res: Respons
 
     const prompt = `You are a marketplace listing assistant for Egypt's Kaero platform. Analyze this product image.
 ${category_hint ? `Category hint: ${category_hint}` : ''}
+${voice_transcript ? `Seller's voice description: "${voice_transcript}". Use this to improve accuracy of title, description, condition, and price.` : ''}
 Return ONLY valid JSON:
 {"title":"concise English title max 60 chars","title_ar":"Arabic title","description":"2-3 sentence English description","description_ar":"Arabic description","suggested_price_egp":realistic_EGP_number,"category":"phones|laptops|tablets|audio|gaming|cameras|drones|furniture|cars|other","condition":"new|like_new|good|fair|poor","confidence":0_to_1,"key_features":["feat1","feat2"]}`;
 

@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, CONDITION_LABELS, SHADOWS } from '../../constants/theme';
 import { listingService } from '../../services/listing.service';
@@ -23,11 +25,17 @@ export default function SellScreen() {
   const { coords } = useLocationStore();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   const [photos, setPhotos] = useState<string[]>([]);
   const [showCamera, setShowCamera] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Voice
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
 
   // Form fields
   const [title, setTitle] = useState('');
@@ -56,6 +64,7 @@ export default function SellScreen() {
   const resetForm = () => {
     setPhotos([]); setTitle(''); setDescription(''); setPrice('');
     setCondition('good'); setCategoryId(null); setAiData(null); setPriceSuggestion(null);
+    setVoiceTranscript(''); setIsRecording(false);
   };
 
   const takePhoto = async () => {
@@ -72,20 +81,19 @@ export default function SellScreen() {
       if (photo?.uri) {
         setPhotos(p => [...p, photo.uri]);
         setShowCamera(false);
-        // Auto-analyze first photo
         if (photos.length === 0 && photo.base64) {
-          analyzePhoto(photo.base64);
+          analyzePhoto(photo.base64, voiceTranscript || undefined);
         }
       }
-    } catch (e) {
+    } catch {
       Alert.alert('Error', 'Failed to capture photo');
     }
   };
 
-  const analyzePhoto = async (base64: string) => {
+  const analyzePhoto = async (base64: string, transcript?: string) => {
     setAnalyzing(true);
     try {
-      const result = await aiService.analyzeImage(base64);
+      const result = await aiService.analyzeImage(base64, undefined, transcript ?? voiceTranscript ?? undefined);
       setAiData(result);
       if (result.title && !title) setTitle(result.title);
       if (result.description && !description) setDescription(result.description);
@@ -99,13 +107,50 @@ export default function SellScreen() {
     }
   };
 
+  const toggleRecording = async () => {
+    if (isRecording) {
+      // Stop recording
+      setIsRecording(false);
+      const recording = recordingRef.current;
+      if (!recording) return;
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      recordingRef.current = null;
+      if (!uri) return;
+
+      setTranscribing(true);
+      try {
+        const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+        const mimeType = Platform.OS === 'ios' ? 'audio/m4a' : 'audio/mp4';
+        const { transcript } = await aiService.transcribeVoice(base64, mimeType);
+        setVoiceTranscript(transcript);
+        // Re-analyze with voice+photo if photo already taken
+        if (photos.length > 0 && transcript) {
+          const photoBase64 = await FileSystem.readAsStringAsync(photos[0], { encoding: FileSystem.EncodingType.Base64 });
+          analyzePhoto(photoBase64, transcript);
+        }
+      } catch {
+        Alert.alert('Transcription failed', 'Could not transcribe audio. Try again.');
+      } finally {
+        setTranscribing(false);
+      }
+    } else {
+      // Start recording
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) { Alert.alert('Microphone permission required'); return; }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      recordingRef.current = recording;
+      setIsRecording(true);
+    }
+  };
+
   const fetchMarketPrice = async () => {
     if (!title.trim() || title.trim().length < 4) return;
     setFetchingPrice(true);
     try {
       const result = await aiService.suggestPrice(title.trim(), condition, categoryId ?? undefined);
       setPriceSuggestion(result);
-      // Auto-fill only if user hasn't typed a price yet
       if (result.suggested_price && !price) setPrice(String(result.suggested_price));
     } catch {
       // Silently fail
@@ -122,7 +167,6 @@ export default function SellScreen() {
 
     try {
       setUploading(true);
-      // Upload all local photos to server, get hosted URLs
       const hostedUrls = await uploadService.uploadImages(photos);
       setUploading(false);
 
@@ -169,6 +213,13 @@ export default function SellScreen() {
     );
   }
 
+  const voiceStatusText = () => {
+    if (isRecording) return 'Recording... tap to stop';
+    if (transcribing) return 'Transcribing...';
+    if (voiceTranscript) return voiceTranscript.length > 80 ? voiceTranscript.slice(0, 80) + '…' : voiceTranscript;
+    return 'Tap mic to describe your item';
+  };
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={[styles.container, { paddingTop: insets.top }]} keyboardShouldPersistTaps="handled">
@@ -204,13 +255,55 @@ export default function SellScreen() {
           {analyzing && (
             <View style={styles.analyzingRow}>
               <ActivityIndicator size="small" color={COLORS.primary} />
-              <Text style={styles.analyzingText}>AI analyzing your photo...</Text>
+              <Text style={styles.analyzingText}>
+                {voiceTranscript ? 'AI analyzing photo + voice...' : 'AI analyzing your photo...'}
+              </Text>
             </View>
           )}
           {aiData && !analyzing && (
             <View style={styles.aiSuccessBanner}>
               <Ionicons name="sparkles" size={14} color={COLORS.primary} />
-              <Text style={styles.aiSuccessText}>AI filled in details for you! Review and edit below.</Text>
+              <Text style={styles.aiSuccessText}>
+                {voiceTranscript ? 'AI used photo + voice to fill details!' : 'AI filled in details for you!'} Review and edit below.
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Voice Description */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Voice Description</Text>
+          <View style={styles.voiceCard}>
+            <TouchableOpacity
+              style={[styles.micBtn, isRecording && styles.micBtnRecording]}
+              onPress={toggleRecording}
+              disabled={transcribing}
+            >
+              {transcribing
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name={isRecording ? 'stop' : 'mic'} size={26} color="#fff" />
+              }
+            </TouchableOpacity>
+            <View style={styles.voiceTextContainer}>
+              <Text style={[
+                styles.voiceStatusText,
+                voiceTranscript && !isRecording && !transcribing && styles.voiceTranscriptText,
+              ]} numberOfLines={3}>
+                {voiceStatusText()}
+              </Text>
+              {voiceTranscript && !isRecording && !transcribing && (
+                <TouchableOpacity onPress={() => setVoiceTranscript('')}>
+                  <Text style={styles.clearVoiceText}>Clear</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+          {voiceTranscript && !analyzing && (
+            <View style={styles.voiceBadge}>
+              <Ionicons name="checkmark-circle" size={13} color={COLORS.primary} />
+              <Text style={styles.voiceBadgeText}>
+                {photos.length > 0 ? 'Voice + photo analyzed together' : 'Voice ready — take a photo to analyze'}
+              </Text>
             </View>
           )}
         </View>
@@ -274,7 +367,6 @@ export default function SellScreen() {
             <Text style={styles.currency}>EGP</Text>
           </View>
 
-          {/* Market price hint card */}
           {priceSuggestion?.suggested_price && (
             <View style={styles.priceHintCard}>
               <View style={styles.priceHintHeader}>
@@ -407,6 +499,27 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight, borderRadius: RADIUS.sm, padding: SPACING.sm,
   },
   aiSuccessText: { color: COLORS.primary, fontSize: TYPOGRAPHY.fontSizeSM, flex: 1 },
+  // Voice
+  voiceCard: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
+    backgroundColor: COLORS.background, borderRadius: RADIUS.md,
+    padding: SPACING.md, borderWidth: 1.5, borderColor: COLORS.borderLight,
+  },
+  micBtn: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  micBtnRecording: { backgroundColor: '#E53E3E' },
+  voiceTextContainer: { flex: 1 },
+  voiceStatusText: { fontSize: TYPOGRAPHY.fontSizeSM, color: COLORS.iconDefault, lineHeight: 20 },
+  voiceTranscriptText: { color: COLORS.text, fontWeight: TYPOGRAPHY.fontWeightMedium },
+  clearVoiceText: { color: COLORS.primary, fontSize: 12, marginTop: 4, fontWeight: '600' },
+  voiceBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: SPACING.sm,
+    backgroundColor: COLORS.primaryLight, borderRadius: RADIUS.sm, padding: SPACING.sm,
+  },
+  voiceBadgeText: { color: COLORS.primary, fontSize: TYPOGRAPHY.fontSizeSM, flex: 1 },
   input: {
     borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md, height: 50,
