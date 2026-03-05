@@ -6,7 +6,7 @@ export const uploadService = {
   async uploadImage(localUri: string): Promise<string> {
     // Read file as base64
     const base64 = await FileSystem.readAsStringAsync(localUri, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: 'base64',
     });
     const mime = localUri.endsWith('.png') ? 'image/png' : 'image/jpeg';
     const { data } = await api.post('/uploads/base64', { image_base64: base64, mime_type: mime });

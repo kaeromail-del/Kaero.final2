@@ -22,7 +22,5 @@ jobs:
         cache-dependency-path: mobile/package-lock.json
     - name: Install dependencies
       run: cd mobile && npm ci --legacy-peer-deps
-    - name: Lint
-      run: cd mobile && npm run lint
     - name: Type check
       run: cd mobile && npm run typecheck

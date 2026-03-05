@@ -127,7 +127,7 @@ export default function ChatScreen() {
 
   const handleTypingChange = (text: string) => {
     setInput(text);
-    socketService.sendTyping(id);
+    socketService.sendTyping(id, true);
   };
 
   // Group messages by date

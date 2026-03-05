@@ -116,8 +116,8 @@ export default function SearchScreen() {
       const uri = recordingRef.current.getURI();
       recordingRef.current = null;
       if (!uri) return;
-      const { FileSystem } = await import('expo-file-system');
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const FileSystem = await import('expo-file-system');
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
       const { data } = await api.post('/ai/voice-search', { audio_base64: base64, mime_type: 'audio/m4a' });
       if (data.transcript) {
         setQuery(data.transcript);
@@ -196,7 +196,7 @@ export default function SearchScreen() {
             <TouchableOpacity key={s} style={styles.suggestRow} onPress={() => { setQuery(s); handleSearch(s); }}>
               <Ionicons name="time-outline" size={16} color="#AAA" />
               <Text style={styles.suggestText}>{s}</Text>
-              <Ionicons name="arrow-up-back" size={14} color="#AAA" />
+              <Ionicons name="return-up-back" size={14} color="#AAA" />
             </TouchableOpacity>
           ))}
           <Text style={[styles.suggestTitle, { marginTop: SPACING.xl }]}>Browse by Category</Text>

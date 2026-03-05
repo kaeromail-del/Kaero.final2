@@ -361,7 +361,7 @@ export default function ListingOffersScreen() {
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Send Counter',
-            onPress: (value) => {
+            onPress: (value?: string) => {
               const parsed = Number(value?.replace(/,/g, '').trim());
               if (!value || isNaN(parsed) || parsed <= 0) {
                 Alert.alert('Invalid amount', 'Please enter a valid price.');

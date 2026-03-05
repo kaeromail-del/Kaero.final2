@@ -120,13 +120,13 @@ export default function SellScreen() {
 
       setTranscribing(true);
       try {
-        const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+        const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
         const mimeType = Platform.OS === 'ios' ? 'audio/m4a' : 'audio/mp4';
         const { transcript } = await aiService.transcribeVoice(base64, mimeType);
         setVoiceTranscript(transcript);
         // Re-analyze with voice+photo if photo already taken
         if (photos.length > 0 && transcript) {
-          const photoBase64 = await FileSystem.readAsStringAsync(photos[0], { encoding: FileSystem.EncodingType.Base64 });
+          const photoBase64 = await FileSystem.readAsStringAsync(photos[0], { encoding: 'base64' });
           analyzePhoto(photoBase64, transcript);
         }
       } catch {

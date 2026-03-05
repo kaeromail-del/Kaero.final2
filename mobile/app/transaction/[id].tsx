@@ -59,7 +59,7 @@ function buildSteps(tx: any, isBuyer: boolean): Step[] {
       key: 'done',
       label: d !== 'none' ? 'Dispute' : s === 'refunded' ? 'Refunded' : 'Completed',
       sub: d !== 'none'
-        ? { none: '', opened: 'Under Kaero review', under_review: 'Under Kaero review', resolved_buyer: 'Resolved — buyer refunded', resolved_seller: 'Resolved — seller paid' }[d] ?? d
+        ? ({ none: '', opened: 'Under Kaero review', under_review: 'Under Kaero review', resolved_buyer: 'Resolved — buyer refunded', resolved_seller: 'Resolved — seller paid' } as Record<string, string>)[d] ?? d
         : s === 'released' ? 'Payment released to seller' : s === 'refunded' ? 'Payment returned to buyer' : 'Awaiting completion',
       icon: d !== 'none' ? 'warning' : s === 'refunded' ? 'return-down-back' : 'checkmark-done-circle',
       done: ['released', 'refunded', 'resolved_buyer', 'resolved_seller'].includes(s) || d.startsWith('resolved'),
