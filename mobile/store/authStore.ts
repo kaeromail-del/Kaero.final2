@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
+import { socketService } from '../services/socket.service';
+import { useFavoritesStore } from './listingStore';
 
 interface User {
   id: string; phone: string; full_name: string | null; avatar_url: string | null;
@@ -44,6 +46,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     await SecureStore.deleteItemAsync('access_token');
     await SecureStore.deleteItemAsync('refresh_token');
+    socketService.disconnect();
+    useFavoritesStore.getState().clearFavorites();
     set({ user: null, isAuthenticated: false });
   },
 }));

@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS } from '../../constants/theme';
 import api from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
@@ -22,6 +23,9 @@ export default function SignupScreen() {
 
   const handleSave = async () => {
     if (!fullName.trim()) { setError('Full name is required'); return; }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Please enter a valid email address'); return;
+    }
     setLoading(true); setError('');
     try {
       await api.patch('/users/me', { full_name: fullName.trim(), email: email.trim() || undefined, preferred_language: lang });
@@ -35,7 +39,11 @@ export default function SignupScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]} keyboardShouldPersistTaps="handled">
+        <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: SPACING.lg }}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+        </TouchableOpacity>
         <Text style={styles.title}>Complete Profile</Text>
+        {!!phone && <Text style={[styles.subtitle, { color: COLORS.primary, fontWeight: '600' }]}>{phone}</Text>}
         <Text style={styles.subtitle}>Tell us a bit about yourself</Text>
         <View style={styles.form}>
           <View>

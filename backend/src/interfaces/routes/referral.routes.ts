@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { query, queryOne } from '../../infrastructure/database/pool';
 import { AuthRequest, requireAuth } from '../middleware/auth.middleware';
 import { notifyUser } from '../../infrastructure/notifications/push';
@@ -21,8 +22,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
 
     let code = user?.referral_code;
     if (!code) {
-      // Generate a unique 8-char code
-      code = Math.random().toString(36).substring(2, 10).toUpperCase();
+      // Generate a unique 8-char cryptographically secure code
+      code = crypto.randomBytes(5).toString('base64url').substring(0, 8).toUpperCase();
       await query('UPDATE users SET referral_code = $1 WHERE id = $2', [code, userId]);
     }
 

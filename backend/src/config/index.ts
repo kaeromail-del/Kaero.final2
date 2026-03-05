@@ -21,7 +21,7 @@ export const config = {
   },
 
   cors: {
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? 'https://kaero-final2.vercel.app' : '*'),
   },
 
   twilio: {

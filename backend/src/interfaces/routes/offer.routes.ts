@@ -1,6 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { query, queryOne } from '../../infrastructure/database/pool';
+import { query, queryOne, withTransaction } from '../../infrastructure/database/pool';
 import { AuthRequest, requireAuth } from '../middleware/auth.middleware';
 import { AppError } from '../../application/auth.service';
 import { notifyNewOffer, notifyOfferAccepted, notifyOfferRejected, notifyOfferCountered } from '../../infrastructure/notifications/push';
@@ -122,23 +122,23 @@ router.patch('/:id/accept', requireAuth, async (req: AuthRequest, res: Response,
     if (offer.seller_id !== req.userId) throw new AppError('Not authorized.', 403);
     if (offer.status !== 'pending') throw new AppError('Offer is no longer pending.', 400);
 
-    // Accept this offer, reject all others
-    await query(`UPDATE offers SET status = 'accepted' WHERE id = $1`, [req.params.id]);
-    await query(
-      `UPDATE offers SET status = 'rejected' WHERE listing_id = $1 AND id != $2 AND status = 'pending'`,
-      [offer.listing_id, req.params.id]
-    );
-    await query(`UPDATE listings SET status = 'reserved' WHERE id = $1`, [offer.listing_id]);
-
-    // Create transaction
+    // Accept offer — wrapped in DB transaction to prevent partial state on failure
     const fee = offer.offered_price * 0.04;
     const sellerReceives = offer.offered_price - (offer.offered_price * 0.02);
 
-    await query(
-      `INSERT INTO transactions (offer_id, listing_id, buyer_id, seller_id, agreed_price, platform_fee, seller_receives)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [req.params.id, offer.listing_id, offer.buyer_id, req.userId, offer.offered_price, fee, sellerReceives]
-    );
+    await withTransaction(async ({ query: txq }) => {
+      await txq(`UPDATE offers SET status = 'accepted' WHERE id = $1`, [req.params.id]);
+      await txq(
+        `UPDATE offers SET status = 'rejected' WHERE listing_id = $1 AND id != $2 AND status = 'pending'`,
+        [offer.listing_id, req.params.id]
+      );
+      await txq(`UPDATE listings SET status = 'reserved' WHERE id = $1`, [offer.listing_id]);
+      await txq(
+        `INSERT INTO transactions (offer_id, listing_id, buyer_id, seller_id, agreed_price, platform_fee, seller_receives)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [req.params.id, offer.listing_id, offer.buyer_id, req.userId, offer.offered_price, fee, sellerReceives]
+      );
+    });
 
     // Notify buyer
     const listing2 = await queryOne<any>(`SELECT user_edited_title FROM listings WHERE id = $1`, [offer.listing_id]);

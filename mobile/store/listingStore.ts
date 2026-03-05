@@ -4,6 +4,7 @@ interface FavoritesState {
   favorites: Set<string>;
   toggleFavorite: (id: string) => void;
   isFavorite: (id: string) => boolean;
+  clearFavorites: () => void;
 }
 
 export const useFavoritesStore = create<FavoritesState>((set, get) => ({
@@ -14,4 +15,5 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     set({ favorites: current });
   },
   isFavorite: (id) => get().favorites.has(id),
+  clearFavorites: () => set({ favorites: new Set<string>() }),
 }));

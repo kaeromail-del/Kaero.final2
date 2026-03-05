@@ -101,7 +101,7 @@ export default function SellScreen() {
       if (result.condition) setCondition(result.condition);
       if (result.category_id && !categoryId) setCategoryId(result.category_id);
     } catch {
-      // Silently fail AI analysis
+      Alert.alert('AI Analysis', 'Could not analyze photo. Fill in the details manually.');
     } finally {
       setAnalyzing(false);
     }
@@ -153,7 +153,7 @@ export default function SellScreen() {
       setPriceSuggestion(result);
       if (result.suggested_price && !price) setPrice(String(result.suggested_price));
     } catch {
-      // Silently fail
+      Alert.alert('Price Suggestion', 'Could not fetch market price. Enter price manually.');
     } finally {
       setFetchingPrice(false);
     }
