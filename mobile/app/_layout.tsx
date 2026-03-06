@@ -9,6 +9,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useAuthStore } from '../store/authStore';
 import { notificationService } from '../services/notification.service';
 import { COLORS } from '../constants/theme';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +33,7 @@ export default function RootLayout() {
   const bg = isDark ? COLORS.darkBackground : COLORS.background;
 
   return (
+    <ErrorBoundary>
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: bg }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
@@ -72,5 +74,6 @@ export default function RootLayout() {
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }

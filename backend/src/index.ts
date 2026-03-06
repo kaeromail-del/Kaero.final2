@@ -5,6 +5,22 @@ import { initSocket } from './infrastructure/socket/socket.service';
 import { query } from './infrastructure/database/pool';
 import { runMigrations } from './infrastructure/database/migrate';
 
+// ─── Startup Validation ───────────────────────────────────
+const REQUIRED_ENV: string[] = ['DATABASE_URL', 'JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+const UNSAFE_DEFAULTS = ['dev-secret-change-me', 'your-super-secret-jwt-key', 'replace_me'];
+
+if (config.nodeEnv === 'production') {
+  const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(`[FATAL] Missing required env vars: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+  if (UNSAFE_DEFAULTS.some((d) => config.jwt.secret.includes(d))) {
+    console.error('[FATAL] JWT_SECRET is using an unsafe default value. Set a strong secret.');
+    process.exit(1);
+  }
+}
+
 const server = http.createServer(app);
 initSocket(server);
 
