@@ -14,6 +14,15 @@ export function generateOTP(): string {
 }
 
 export async function requestOTP(phone: string): Promise<{ otp: string; expiresAt: Date }> {
+  // DEV BYPASS: skip SMS sending — just return a dummy OTP
+  // TODO: Remove this bypass before production launch
+  const DEV_BYPASS_OTP = true;
+
+  if (DEV_BYPASS_OTP) {
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    return { otp: '000000', expiresAt };
+  }
+
   // Rate-limit via Redis (falls back to DB count if Redis is unavailable)
   try {
     const attempts = await incrementOtpAttempts(phone);
@@ -54,38 +63,44 @@ export async function verifyOTP(
   phone: string,
   code: string
 ): Promise<{ user: User; accessToken: string; refreshToken: string; isNewUser: boolean }> {
-  // Verify OTP — try Redis first, fall back to DB
-  let verified = false;
-  try {
-    const stored = await getOtp(phone);
-    if (stored === code) {
-      verified = true;
-      await deleteOtp(phone);
-      await resetOtpAttempts(phone);
-    }
-  } catch {
-    // Redis unavailable — fall through to DB check
-  }
+  // DEV BYPASS: skip OTP verification — accept any 6-digit code
+  // TODO: Remove this bypass before production launch
+  const DEV_BYPASS_OTP = true;
 
-  if (!verified) {
-    const otp = await queryOne<any>(
-      `SELECT * FROM otp_codes
-       WHERE phone = $1 AND code = $2 AND verified_at IS NULL AND expires_at > NOW()
-       ORDER BY created_at DESC LIMIT 1`,
-      [phone, code]
-    );
-    if (!otp) {
-      await query(
-        `UPDATE otp_codes SET attempts = attempts + 1
-         WHERE id = (SELECT id FROM otp_codes WHERE phone = $1 AND verified_at IS NULL ORDER BY created_at DESC LIMIT 1)`,
-        [phone]
-      );
-      throw new AppError('Invalid or expired OTP.', 401);
+  if (!DEV_BYPASS_OTP) {
+    // Verify OTP — try Redis first, fall back to DB
+    let verified = false;
+    try {
+      const stored = await getOtp(phone);
+      if (stored === code) {
+        verified = true;
+        await deleteOtp(phone);
+        await resetOtpAttempts(phone);
+      }
+    } catch {
+      // Redis unavailable — fall through to DB check
     }
-    await query(`UPDATE otp_codes SET verified_at = NOW() WHERE id = $1`, [otp.id]);
-  } else {
-    // Best-effort: mark the DB row as verified too
-    query(`UPDATE otp_codes SET verified_at = NOW() WHERE phone = $1 AND code = $2 AND verified_at IS NULL ORDER BY created_at DESC LIMIT 1`, [phone, code]).catch(() => {});
+
+    if (!verified) {
+      const otp = await queryOne<any>(
+        `SELECT * FROM otp_codes
+         WHERE phone = $1 AND code = $2 AND verified_at IS NULL AND expires_at > NOW()
+         ORDER BY created_at DESC LIMIT 1`,
+        [phone, code]
+      );
+      if (!otp) {
+        await query(
+          `UPDATE otp_codes SET attempts = attempts + 1
+           WHERE id = (SELECT id FROM otp_codes WHERE phone = $1 AND verified_at IS NULL ORDER BY created_at DESC LIMIT 1)`,
+          [phone]
+        );
+        throw new AppError('Invalid or expired OTP.', 401);
+      }
+      await query(`UPDATE otp_codes SET verified_at = NOW() WHERE id = $1`, [otp.id]);
+    } else {
+      // Best-effort: mark the DB row as verified too
+      query(`UPDATE otp_codes SET verified_at = NOW() WHERE phone = $1 AND code = $2 AND verified_at IS NULL ORDER BY created_at DESC LIMIT 1`, [phone, code]).catch(() => {});
+    }
   }
 
   // Find or create user
