@@ -1,6 +1,7 @@
 import http from 'http';
 import app from './app';
 import { config } from './config';
+import { logger } from './infrastructure/logging/logger';
 import { initSocket } from './infrastructure/socket/socket.service';
 import { query } from './infrastructure/database/pool';
 import { runMigrations } from './infrastructure/database/migrate';
@@ -12,11 +13,11 @@ const UNSAFE_DEFAULTS = ['dev-secret-change-me', 'your-super-secret-jwt-key', 'r
 if (config.nodeEnv === 'production') {
   const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
   if (missing.length > 0) {
-    console.error(`[FATAL] Missing required env vars: ${missing.join(', ')}`);
+    logger.fatal({ missing }, '[FATAL] Missing required env vars');
     process.exit(1);
   }
   if (UNSAFE_DEFAULTS.some((d) => config.jwt.secret.includes(d))) {
-    console.error('[FATAL] JWT_SECRET is using an unsafe default value. Set a strong secret.');
+    logger.fatal('[FATAL] JWT_SECRET is using an unsafe default value. Set a strong secret.');
     process.exit(1);
   }
 }
@@ -35,7 +36,7 @@ async function runExpireJobs() {
        RETURNING id`
     );
     if (expiredOffers.length > 0) {
-      console.log(`[CRON] Expired ${expiredOffers.length} offer(s)`);
+      logger.info({ count: expiredOffers.length }, '[CRON] Expired offers');
     }
 
     // Expire active listings past their 30-day window
@@ -45,7 +46,7 @@ async function runExpireJobs() {
        RETURNING id`
     );
     if (expiredListings.length > 0) {
-      console.log(`[CRON] Expired ${expiredListings.length} listing(s)`);
+      logger.info({ count: expiredListings.length }, '[CRON] Expired listings');
     }
 
     // Auto-release escrow after hold period (buyer didn't confirm, no dispute)
@@ -61,13 +62,13 @@ async function runExpireJobs() {
        RETURNING id, listing_id`
     );
     if (autoReleased.length > 0) {
-      console.log(`[CRON] Auto-released ${autoReleased.length} escrow(s)`);
+      logger.info({ count: autoReleased.length }, '[CRON] Auto-released escrows');
       for (const tx of autoReleased as any[]) {
         await query(`UPDATE listings SET status = 'sold' WHERE id = $1`, [tx.listing_id]);
       }
     }
   } catch (err) {
-    console.error('[CRON] Job error:', err);
+    logger.error({ err }, '[CRON] Job error');
   }
 }
 
@@ -80,25 +81,17 @@ async function start() {
   try {
     await runMigrations();
   } catch (err) {
-    console.error('[STARTUP] Migration failed (server will still start):', err);
+    logger.warn({ err }, '[STARTUP] Migration failed (server will still start)');
   }
 
   server.listen(config.port, () => {
-    console.log(`
-  ╔══════════════════════════════════════╗
-  ║   KAERO API v0.51                    ║
-  ║   Port: ${config.port}                        ║
-  ║   Env:  ${config.nodeEnv}            ║
-  ║   WS:   Socket.io enabled            ║
-  ╚══════════════════════════════════════╝
-  `);
-
+    logger.info({ port: config.port, env: config.nodeEnv }, 'KAERO API v1.0 started');
     runExpireJobs();
     setInterval(runExpireJobs, CRON_INTERVAL_MS);
   });
 }
 
 start().catch((err) => {
-  console.error('[FATAL] Server failed to start:', err);
+  logger.fatal({ err }, '[FATAL] Server failed to start');
   process.exit(1);
 });

@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build output (will be built inside Docker)
+dist
+build
+.expo
+.expo-shared
+
+# Environment files — never bake secrets into image
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# Dev tools
+.git
+.github
+.claude
+
+# Test output
+coverage
+*.test.ts
+*.spec.ts
+__tests__
+
+# Docs (not needed at runtime)
+README.md
+PROJECT_AUDIT.md
+REORGANIZATION_LOG.md
+docs
+
+# Mobile + web (backend-only image)
+mobile
+web
+kaero-v51.jsx
+
+# Misc
+*.bak
+*.swp
+new.sh

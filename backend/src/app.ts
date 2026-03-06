@@ -2,12 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import morgan from 'morgan';
+import pinoHttp from 'pino-http';
 import path from 'path';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
+import { logger } from './infrastructure/logging/logger';
 import { errorHandler } from './interfaces/middleware/error.middleware';
 import { healthCheck } from './infrastructure/database/pool';
+import { redis } from './infrastructure/redis/redis.client';
 
 // Route imports
 import authRoutes from './interfaces/routes/auth.routes';
@@ -38,9 +40,7 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-if (config.isDev) {
-  app.use(morgan('dev'));
-}
+app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/health' } }));
 
 // Rate limiting
 const apiLimiter = rateLimit({
@@ -59,12 +59,20 @@ app.use('/api/v1/auth/', authLimiter);
 
 // ─── Health Check ────────────────────────────────────────
 app.get('/health', async (_req, res) => {
-  const dbOk = await healthCheck().catch(() => false);
-  // Always return 200 — server is up; DB status is informational only
+  const [dbOk, redisOk] = await Promise.all([
+    healthCheck().catch(() => false),
+    redis.ping().then(() => true).catch(() => false),
+  ]);
+  // Always return 200 — server is up; service statuses are informational only
   res.status(200).json({
     status: 'ok',
+    version: process.env.npm_package_version || '1.0.0',
+    env: config.nodeEnv,
     timestamp: new Date().toISOString(),
-    database: dbOk ? 'connected' : 'connecting',
+    services: {
+      database: dbOk ? 'connected' : 'degraded',
+      redis: redisOk ? 'connected' : 'degraded',
+    },
   });
 });
 
