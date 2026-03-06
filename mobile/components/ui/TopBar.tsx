@@ -15,12 +15,13 @@ export function TopBar({ title, onBack, right, transparent, showBack = true }: T
     <View style={[styles.container, { paddingTop: insets.top + SPACING.sm }, transparent && styles.transparent]}>
       <View style={styles.row}>
         {showBack
-          ? <TouchableOpacity onPress={handleBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="chevron-back" size={24} color={transparent ? '#fff' : COLORS.text} />
+          ? <TouchableOpacity onPress={handleBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button" accessibilityLabel="Go back">
+            <Ionicons name="chevron-back" size={24} color={transparent ? COLORS.textInverse : COLORS.text} />
           </TouchableOpacity>
           : <View style={styles.backBtn} />
         }
-        {title && <Text style={[styles.title, transparent && { color: '#fff' }]} numberOfLines={1}>{title}</Text>}
+        {title && <Text style={[styles.title, transparent && { color: COLORS.textInverse }]} numberOfLines={1} accessibilityRole="header">{title}</Text>}
         <View style={styles.right}>{right ?? null}</View>
       </View>
     </View>

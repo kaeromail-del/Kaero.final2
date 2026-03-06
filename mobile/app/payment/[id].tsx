@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS, PAYMENT_LABELS } from '../../constants/theme';
 import { transactionService } from '../../services/transaction.service';
 import { referralService } from '../../services/referral.service';
@@ -32,6 +33,7 @@ export default function PaymentScreen() {
   const payMutation = useMutation({
     mutationFn: () => transactionService.initiatePayment(id, selectedMethod),
     onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       queryClient.invalidateQueries({ queryKey: ['transaction', id] });
       Alert.alert(
         'Payment Initiated',
@@ -45,6 +47,7 @@ export default function PaymentScreen() {
   const confirmMutation = useMutation({
     mutationFn: () => transactionService.confirmReceipt(id),
     onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       queryClient.invalidateQueries({ queryKey: ['transaction', id] });
       Alert.alert('Confirmed!', 'Payment released to the seller. Leave a review?', [
         { text: 'Leave Review', onPress: () => router.replace(`/review/${id}` as any) },

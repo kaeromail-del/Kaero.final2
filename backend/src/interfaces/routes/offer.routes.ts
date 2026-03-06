@@ -4,6 +4,7 @@ import { query, queryOne, withTransaction } from '../../infrastructure/database/
 import { AuthRequest, requireAuth } from '../middleware/auth.middleware';
 import { AppError } from '../../application/auth.service';
 import { notifyNewOffer, notifyOfferAccepted, notifyOfferRejected, notifyOfferCountered } from '../../infrastructure/notifications/push';
+import { logger } from '../../infrastructure/logging/logger';
 
 const router = Router();
 
@@ -55,7 +56,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response, next: Next
     // Notify seller
     const buyer = await queryOne<any>(`SELECT full_name FROM users WHERE id = $1`, [req.userId]);
     const listingRow = await queryOne<any>(`SELECT user_edited_title FROM listings WHERE id = $1`, [data.listing_id]);
-    notifyNewOffer(listing.seller_id, buyer?.full_name ?? 'Someone', listingRow?.user_edited_title ?? '', data.listing_id, (rows[0] as any).id).catch(() => {});
+    notifyNewOffer(listing.seller_id, buyer?.full_name ?? 'Someone', listingRow?.user_edited_title ?? '', data.listing_id, (rows[0] as any).id).catch((err) => logger.warn({ sellerId: listing.seller_id, err }, '[NOTIFY] Failed to send new-offer notification'));
 
     res.status(201).json({ offer: rows[0] });
   } catch (err) {
@@ -143,7 +144,7 @@ router.patch('/:id/accept', requireAuth, async (req: AuthRequest, res: Response,
     // Notify buyer
     const listing2 = await queryOne<any>(`SELECT user_edited_title FROM listings WHERE id = $1`, [offer.listing_id]);
     const tx2 = await queryOne<any>(`SELECT id FROM transactions WHERE offer_id = $1`, [req.params.id]);
-    notifyOfferAccepted(offer.buyer_id, listing2?.user_edited_title ?? '', offer.listing_id, tx2?.id ?? '').catch(() => {});
+    notifyOfferAccepted(offer.buyer_id, listing2?.user_edited_title ?? '', offer.listing_id, tx2?.id ?? '').catch((err) => logger.warn({ buyerId: offer.buyer_id, err }, '[NOTIFY] Failed to send offer-accepted notification'));
 
     res.json({ message: 'Offer accepted.', offer: { ...offer, status: 'accepted' } });
   } catch (err) {
@@ -164,7 +165,7 @@ router.patch('/:id/reject', requireAuth, async (req: AuthRequest, res: Response,
 
     await query(`UPDATE offers SET status = 'rejected' WHERE id = $1`, [req.params.id]);
     const listingR = await queryOne<any>(`SELECT user_edited_title FROM listings WHERE id = $1`, [offer.listing_id]);
-    notifyOfferRejected(offer.buyer_id, listingR?.user_edited_title ?? '').catch(() => {});
+    notifyOfferRejected(offer.buyer_id, listingR?.user_edited_title ?? '').catch((err) => logger.warn({ buyerId: offer.buyer_id, err }, '[NOTIFY] Failed to send offer-rejected notification'));
     res.json({ message: 'Offer rejected.' });
   } catch (err) {
     next(err);
@@ -190,7 +191,7 @@ router.patch('/:id/counter', requireAuth, async (req: AuthRequest, res: Response
     );
 
     const listingC = await queryOne<any>(`SELECT user_edited_title FROM listings WHERE id = $1`, [offer.listing_id]);
-    notifyOfferCountered(offer.buyer_id, listingC?.user_edited_title ?? '', counter_price, offer.listing_id, req.params.id).catch(() => {});
+    notifyOfferCountered(offer.buyer_id, listingC?.user_edited_title ?? '', counter_price, offer.listing_id, req.params.id).catch((err) => logger.warn({ buyerId: offer.buyer_id, err }, '[NOTIFY] Failed to send counter-offer notification'));
 
     res.json({ message: 'Counter offer sent.', counter_price });
   } catch (err) {
@@ -245,7 +246,7 @@ router.patch('/:id/accept-counter', requireAuth, async (req: AuthRequest, res: R
 
     const listingAC = await queryOne<any>(`SELECT user_edited_title FROM listings WHERE id = $1`, [offer.listing_id]);
     const txAC = await queryOne<any>(`SELECT id FROM transactions WHERE offer_id = $1`, [req.params.id]);
-    notifyOfferAccepted(offer.seller_id, listingAC?.user_edited_title ?? '', offer.listing_id, txAC?.id ?? '').catch(() => {});
+    notifyOfferAccepted(offer.seller_id, listingAC?.user_edited_title ?? '', offer.listing_id, txAC?.id ?? '').catch((err) => logger.warn({ sellerId: offer.seller_id, err }, '[NOTIFY] Failed to send counter-accepted notification'));
 
     res.json({ message: 'Counter offer accepted.' });
   } catch (err) {

@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from '../../constants/theme';
 import { transactionService } from '../../services/transaction.service';
 import { useAuthStore } from '../../store/authStore';
@@ -101,6 +102,7 @@ export default function TransactionDetailScreen() {
   const confirmMutation = useMutation({
     mutationFn: () => transactionService.confirmReceipt(id),
     onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       queryClient.invalidateQueries({ queryKey: ['transaction', id] });
       Alert.alert('Done!', 'Payment released. Leave a review?', [
         { text: 'Leave Review', onPress: () => router.push(`/review/${id}` as any) },

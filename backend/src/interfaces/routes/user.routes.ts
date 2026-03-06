@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { query, queryOne } from '../../infrastructure/database/pool';
 import { AuthRequest, requireAuth } from '../middleware/auth.middleware';
 import { AppError } from '../../application/auth.service';
+import { logger } from '../../infrastructure/logging/logger';
 import type { User } from '../../domain/entities';
 
 const router = Router();
@@ -117,7 +118,7 @@ router.post('/me/id-verify', requireAuth, async (req: AuthRequest, res: Response
     );
 
     // TODO: trigger Jumio/Sumsub webhook or admin notification here
-    console.log(`[ID-VERIFY] User ${req.userId} submitted docs for review. Back: ${id_back_url}`);
+    logger.info({ userId: req.userId }, '[ID-VERIFY] User submitted docs for review');
 
     res.json({ message: 'Documents submitted for review. Verification usually takes 1–2 business days.' });
   } catch (err) { next(err); }

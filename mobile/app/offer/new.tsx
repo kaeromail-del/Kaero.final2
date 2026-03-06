@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, PAYMENT_LABELS } from '../../constants/theme';
 import { offerService } from '../../services/offer.service';
 import { listingService } from '../../services/listing.service';
@@ -36,6 +37,7 @@ export default function MakeOfferScreen() {
       is_exchange_proposal: isExchange,
     }),
     onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Offer Sent!', 'The seller will review your offer and respond shortly.', [
         { text: 'OK', onPress: () => router.back() },
       ]);

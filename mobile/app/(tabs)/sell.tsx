@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
+import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, CONDITION_LABELS, SHADOWS } from '../../constants/theme';
 import { listingService } from '../../services/listing.service';
@@ -53,6 +54,7 @@ export default function SellScreen() {
   const createMutation = useMutation({
     mutationFn: (data: any) => listingService.create(data),
     onSuccess: (listing) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Posted!', 'Your listing is now live.', [
         { text: 'View Listing', onPress: () => router.push(`/listing/${listing.id}`) },
         { text: 'Sell Another', onPress: () => { resetForm(); router.replace('/(tabs)/sell'); } },
@@ -77,6 +79,7 @@ export default function SellScreen() {
 
   const capturePhoto = async () => {
     try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const photo = await cameraRef.current?.takePictureAsync({ base64: true, quality: 0.8 });
       if (photo?.uri) {
         setPhotos(p => [...p, photo.uri]);

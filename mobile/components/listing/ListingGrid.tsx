@@ -6,8 +6,14 @@ import { COLORS, SPACING } from '../../constants/theme';
 
 const SKELETON_COUNT = 6;
 
+interface ListingItem {
+  id: string; user_edited_title: string; final_price: number;
+  primary_image_url: string; condition: string;
+  distance_km?: number; created_at?: string;
+}
+
 interface ListingGridProps {
-  listings: any[]; loading?: boolean; refreshing?: boolean;
+  listings: ListingItem[]; loading?: boolean; refreshing?: boolean;
   onRefresh?: () => void; onEndReached?: () => void;
   emptyText?: string; compact?: boolean;
 }
@@ -51,6 +57,6 @@ export function ListingGrid({ listings, loading, refreshing, onRefresh, onEndRea
 const styles = StyleSheet.create({
   container: { padding: SPACING.lg, gap: SPACING.md, paddingBottom: 100 },
   row: { justifyContent: 'space-between', gap: SPACING.md },
-  empty: { textAlign: 'center', color: '#999', marginTop: 60, fontSize: 16 },
+  empty: { textAlign: 'center', color: COLORS.textTertiary, marginTop: 60, fontSize: 16 },
   skeletonContainer: { padding: SPACING.lg, gap: SPACING.md },
 });

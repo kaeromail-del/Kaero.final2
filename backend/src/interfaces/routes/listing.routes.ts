@@ -4,6 +4,7 @@ import { query, queryOne } from '../../infrastructure/database/pool';
 import { AuthRequest, requireAuth, optionalAuth } from '../middleware/auth.middleware';
 import { AppError } from '../../application/auth.service';
 import { moderateListing } from '../../infrastructure/moderation/automod.service';
+import { logger } from '../../infrastructure/logging/logger';
 
 const router = Router();
 
@@ -161,7 +162,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response, next: Next
       if (mod.status !== 'approved') {
         await query('UPDATE listings SET moderation_status = $1 WHERE id = $2', [mod.status, listing.id]);
       }
-    }).catch(() => {});
+    }).catch((err) => logger.error({ listingId: listing.id, err }, '[MODERATION] Fire-and-forget moderation failed'));
 
     res.status(201).json({ listing });
   } catch (err) {

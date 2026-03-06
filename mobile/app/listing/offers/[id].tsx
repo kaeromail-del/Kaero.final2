@@ -14,6 +14,7 @@ import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from '../../../constants/theme';
 import api from '../../../services/api';
 
@@ -314,6 +315,7 @@ export default function ListingOffersScreen() {
     mutationFn: (offerId: string) =>
       api.patch(`/offers/${offerId}`, { action: 'accept' }),
     onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       queryClient.invalidateQueries({ queryKey: ['listing-offers', id] });
       Alert.alert(
         'Offer accepted!',
@@ -328,6 +330,7 @@ export default function ListingOffersScreen() {
     mutationFn: (offerId: string) =>
       api.patch(`/offers/${offerId}`, { action: 'decline' }),
     onSuccess: () => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       queryClient.invalidateQueries({ queryKey: ['listing-offers', id] });
     },
     onError: (e: any) =>

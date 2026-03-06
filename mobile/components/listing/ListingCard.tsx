@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 import { useFavoritesStore } from '../../store/listingStore';
 
@@ -31,6 +32,8 @@ export function ListingCard({ item, compact }: ListingCardProps) {
       style={[styles.card, compact && styles.compact]}
       onPress={() => router.push(`/listing/${item.id}`)}
       activeOpacity={0.92}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.user_edited_title}, ${Number(item.final_price).toLocaleString()} EGP`}
     >
       <View style={compact ? styles.compactImgContainer : styles.imageContainer}>
         <Image
@@ -42,8 +45,10 @@ export function ListingCard({ item, compact }: ListingCardProps) {
           <>
             <TouchableOpacity
               style={[styles.favBtn, fav && styles.favBtnActive]}
-              onPress={(e) => { e.stopPropagation?.(); toggleFavorite(item.id); }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={(e) => { e.stopPropagation?.(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleFavorite(item.id); }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel={fav ? 'Remove from favorites' : 'Add to favorites'}
             >
               <Ionicons name={fav ? 'heart' : 'heart-outline'} size={15} color={fav ? COLORS.error : COLORS.iconDefault} />
             </TouchableOpacity>

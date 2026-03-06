@@ -2,6 +2,7 @@ import { Router, Response, NextFunction } from 'express';
 import { AuthRequest, requireAuth } from '../middleware/auth.middleware';
 import { query, queryOne } from '../../infrastructure/database/pool';
 import { AppError } from '../../application/auth.service';
+import { logger } from '../../infrastructure/logging/logger';
 import { z } from 'zod';
 import { notifyPaymentReceived, notifyReviewReceived } from '../../infrastructure/notifications/push';
 import { creditSellerWallet } from './wallet.routes';
@@ -104,11 +105,11 @@ router.patch('/:id/confirm', requireAuth, async (req: AuthRequest, res: Response
     const title = lstRow?.user_edited_title ?? '';
     // Credit seller wallet
     creditSellerWallet(txn.seller_id, Number(txn.seller_receives), req.params.id,
-      `Sale: ${title}`).catch(() => {});
+      `Sale: ${title}`).catch((err) => logger.error({ sellerId: txn.seller_id, transactionId: req.params.id, amount: txn.seller_receives, err }, '[WALLET] CRITICAL: Failed to credit seller wallet'));
     // Notify seller
-    notifyPaymentReceived(txn.seller_id, Number(txn.seller_receives), title, req.params.id).catch(() => {});
+    notifyPaymentReceived(txn.seller_id, Number(txn.seller_receives), title, req.params.id).catch((err) => logger.warn({ sellerId: txn.seller_id, err }, '[NOTIFY] Failed to send payment-received notification'));
     // Referral bonus for buyer's first completed transaction
-    checkAndRewardReferral(userId).catch(() => {});
+    checkAndRewardReferral(userId).catch((err) => logger.warn({ userId, err }, '[REFERRAL] Failed to check/reward referral bonus'));
     res.json({ transaction: updated });
   } catch (err) { next(err); }
 });
@@ -211,7 +212,7 @@ router.post('/:id/review', requireAuth, async (req: AuthRequest, res: Response, 
 
     // Notify reviewee
     const reviewer = await queryOne<any>(`SELECT full_name FROM users WHERE id = $1`, [userId]);
-    notifyReviewReceived(revieweeId, reviewer?.full_name ?? 'Someone', rating).catch(() => {});
+    notifyReviewReceived(revieweeId, reviewer?.full_name ?? 'Someone', rating).catch((err) => logger.warn({ revieweeId, err }, '[NOTIFY] Failed to send review-received notification'));
 
     res.status(201).json({ review });
   } catch (err) { next(err); }

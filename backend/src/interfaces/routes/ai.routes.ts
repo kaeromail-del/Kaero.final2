@@ -2,6 +2,7 @@ import { Router, Response, NextFunction } from 'express';
 import { AuthRequest, requireAuth } from '../middleware/auth.middleware';
 import { AppError } from '../../application/auth.service';
 import { query, queryOne } from '../../infrastructure/database/pool';
+import { logger } from '../../infrastructure/logging/logger';
 import { z } from 'zod';
 
 // Maps GPT-4o category slug → DB category name_en
@@ -248,7 +249,7 @@ Answer in the same language the user writes in (Arabic or English). Be concise, 
     ].slice(-20);
 
     query('UPDATE users SET ai_conversation = $1 WHERE id = $2', [JSON.stringify(updatedHistory), userId])
-      .catch(() => {});
+      .catch((err) => logger.warn({ userId, err }, '[AI] Failed to persist conversation history'));
 
     res.json({ reply, mock: false });
   } catch (err) { next(err); }

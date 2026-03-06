@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from '../../constants/theme';
 import { chatService } from '../../services/chat.service';
 import { socketService } from '../../services/socket.service';
@@ -103,6 +104,7 @@ export default function ChatScreen() {
   const handleSend = () => {
     const text = input.trim();
     if (!text) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setInput('');
     // Optimistic message shown immediately
     const optimistic = {

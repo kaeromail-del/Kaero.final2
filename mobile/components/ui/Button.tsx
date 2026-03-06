@@ -16,6 +16,9 @@ export function Button({ children, onPress, variant = 'primary', size = 'md', lo
       onPress={onPress} disabled={disabled || loading}
       style={[base.btn, s.btn, sz.btn, fullWidth && { width: '100%' }, (disabled || loading) && base.disabled, style]}
       activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: disabled || loading || false }}
+      hitSlop={size === 'sm' ? { top: 6, bottom: 6, left: 6, right: 6 } : undefined}
     >
       {loading
         ? <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? COLORS.primary : '#fff'} size="small" />
