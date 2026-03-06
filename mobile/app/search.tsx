@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS, CONDITION_LABELS } from '../constants/theme';
 import { listingService } from '../services/listing.service';
 import { categoryService } from '../services/category.service';
@@ -116,7 +117,6 @@ export default function SearchScreen() {
       const uri = recordingRef.current.getURI();
       recordingRef.current = null;
       if (!uri) return;
-      const FileSystem = await import('expo-file-system');
       const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
       const { data } = await api.post('/ai/voice-search', { audio_base64: base64, mime_type: 'audio/m4a' });
       if (data.transcript) {
