@@ -110,6 +110,9 @@ export const offerApi = {
   my: () => api.get('/offers/my'),
   accept: (id) => api.patch(`/offers/${id}/accept`),
   reject: (id) => api.patch(`/offers/${id}/reject`),
+  counter: (id, counter_price) => api.patch(`/offers/${id}/counter`, { counter_price }),
+  cancel: (id) => api.patch(`/offers/${id}/cancel`),
+  acceptCounter: (id) => api.patch(`/offers/${id}/accept-counter`),
 };
 
 // Chats
@@ -136,6 +139,54 @@ export const aiApi = {
     api.post('/ai/analyze-image', { image_base64: imageBase64, category_hint: categoryHint }),
   priceSuggest: (data) => api.post('/ai/price-suggest', data),
   ask: (message) => api.post('/ai/ask', { message }),
+};
+
+// Wallet
+export const walletApi = {
+  me: () => api.get('/wallet/me'),
+  transactions: (params) => api.get('/wallet/transactions', { params }),
+  withdraw: (data) => api.post('/wallet/withdraw', data),
+};
+
+// Notifications
+export const notificationApi = {
+  list: () => api.get('/notifications'),
+  readAll: () => api.patch('/notifications/read-all'),
+  readOne: (id) => api.patch(`/notifications/${id}/read`),
+  pushToken: (token) => api.post('/notifications/push-token', { token }),
+};
+
+// Reviews
+export const reviewApi = {
+  create: (data) => api.post('/reviews', data),
+  pending: () => api.get('/reviews/pending'),
+  byUser: (userId) => api.get(`/users/${userId}/reviews`),
+};
+
+// Uploads
+export const uploadApi = {
+  image: (formData) => api.post('/uploads/image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000,
+  }),
+  images: (formData) => api.post('/uploads/images', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,
+  }),
+  base64: (image_base64, mime_type = 'image/jpeg') =>
+    api.post('/uploads/base64', { image_base64, mime_type }),
+};
+
+// Referral
+export const referralApi = {
+  me: () => api.get('/referral/me'),
+  apply: (code) => api.post('/referral/apply', { code }),
+};
+
+// Favorites
+export const favoriteApi = {
+  mine: () => api.get('/listings/favorites/mine'),
+  toggle: (listingId) => api.post(`/listings/${listingId}/favorite`),
 };
 
 // Health

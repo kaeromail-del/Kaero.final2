@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { authApi, userApi, listingApi, offerApi, chatApi, categoryApi, setStoredTokens, setStoredUser, getStoredUser, getStoredTokens, clearAuth } from "./web/api.js";
+import { authApi, userApi, listingApi, offerApi, chatApi, categoryApi, transactionApi, walletApi, notificationApi, reviewApi, uploadApi, referralApi, favoriteApi, setStoredTokens, setStoredUser, getStoredUser, getStoredTokens, clearAuth } from "./web/api.js";
 
 /* ═══════════════════════════════════════════════════════════
    KAERO v38 — OFFICIAL KAERO COLOR SYSTEM
@@ -31,6 +31,154 @@ async function callClaude(userPrompt, systemPrompt = "") {
   } catch (e) {
     return null;
   }
+}
+
+/* ── TIME AGO HELPER ── */
+function timeAgo(isoString) {
+  if (!isoString) return '';
+  const diff = Date.now() - new Date(isoString).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d`;
+  return `${Math.floor(d / 30)}mo`;
+}
+
+/* ── BACKEND → UI ADAPTERS ── */
+function adaptListing(l) {
+  if (!l) return null;
+  // Already adapted (has _raw) — return as-is
+  if (l._raw) return l;
+  return {
+    id: l.id,
+    name: l.user_edited_title || l.ai_generated_title || l.title || 'Untitled',
+    brand: '',
+    price: Number(l.final_price ?? l.price ?? 0),
+    km: Number(l.distance_km ?? 0),
+    rating: Number(l.seller_trust_score ?? l.trust_score ?? 4.5),
+    reviews: Number(l.seller_total_reviews ?? l.total_reviews ?? 0),
+    condition: l.condition || 'good',
+    img: l.primary_image_url || l.image_url || 'https://placehold.co/400x400/019F45/white?text=Kaero',
+    additionalImgs: Array.isArray(l.additional_images) ? l.additional_images : [],
+    seller: l.seller_name || l.seller?.full_name || '',
+    sellerRating: Number(l.seller_trust_score ?? l.seller?.trust_score ?? 4.5),
+    sellerReviews: Number(l.seller_total_reviews ?? l.seller?.total_reviews ?? 0),
+    sellerTrust: Math.round(Number(l.seller_trust_score ?? l.seller?.trust_score ?? 80)),
+    sellerId: l.seller_id || l.seller?.id || '',
+    sellerImg: l.seller_avatar || l.seller?.avatar_url || '',
+    desc: l.user_edited_description || l.ai_generated_description || l.description || '',
+    category: l.category_name || l.category_id?.toString() || 'other',
+    categoryId: l.category_id,
+    views: Number(l.view_count ?? 0),
+    aiPrice: Number(l.ai_suggested_price ?? l.final_price ?? 0),
+    sold: l.status === 'sold',
+    status: l.status || 'active',
+    createdAt: l.created_at,
+    lat: l.lat ? Number(l.lat) : null,
+    lng: l.lng ? Number(l.lng) : null,
+    _raw: l,
+  };
+}
+
+function adaptOffer(o) {
+  if (!o) return null;
+  if (o._raw) return o;
+  return {
+    id: o.id,
+    buyer: o.buyer_name || o.buyer?.full_name || 'Buyer',
+    av: (o.buyer_name || o.buyer?.full_name || 'B')[0].toUpperCase(),
+    avImg: o.buyer_avatar || o.buyer?.avatar_url || '',
+    price: Number(o.offered_price ?? o.price ?? 0),
+    km: 0,
+    rating: Number(o.buyer_trust_score ?? o.buyer?.trust_score ?? 4.0),
+    reviews: 0,
+    note: o.message || '',
+    exchange: o.is_exchange_proposal ? (o.exchange_listing_title || 'Exchange item') : null,
+    exchangeImg: o.exchange_listing_image || null,
+    exchangeVal: Number(o.exchange_listing_value ?? 0),
+    time: timeAgo(o.created_at),
+    status: o.status || 'pending',
+    counterPrice: o.counter_price ? Number(o.counter_price) : null,
+    listingId: o.listing_id,
+    buyerId: o.buyer_id,
+    _raw: o,
+  };
+}
+
+function adaptChat(c) {
+  if (!c) return null;
+  if (c._raw) return c;
+  return {
+    id: c.id,
+    buyer: c.other_user_name || c.buyer_name || c.seller_name || 'User',
+    av: (c.other_user_name || c.buyer_name || c.seller_name || 'U')[0].toUpperCase(),
+    avImg: c.other_user_avatar || '',
+    item: {
+      id: c.listing_id,
+      name: c.listing_title || 'Item',
+      price: Number(c.listing_price ?? 0),
+      img: c.listing_image || 'https://placehold.co/400x400/019F45/white?text=Kaero',
+    },
+    price: Number(c.listing_price ?? 0),
+    lastMsg: c.last_message || '',
+    time: c.last_message_at ? timeAgo(c.last_message_at) : '',
+    unread: c.unread_count || 0,
+    listingId: c.listing_id,
+    _raw: c,
+  };
+}
+
+function adaptMessage(m, currentUserId) {
+  if (!m) return null;
+  return {
+    from: m.sender_id === currentUserId ? 'me' : 'them',
+    text: m.content || '',
+    time: m.created_at ? timeAgo(m.created_at) : '',
+    offer: m.message_type === 'offer',
+    type: m.message_type || 'text',
+    mediaUrl: m.media_url || null,
+    _raw: m,
+  };
+}
+
+function adaptNotification(n) {
+  if (!n) return null;
+  const iconMap = {
+    new_offer: '💬', offer_accepted: '✅', offer_rejected: '❌', offer_countered: '🔄',
+    payment_received: '💰', review_received: '⭐', referral_joined: '👥',
+    referral_transacted: '🎁', new_listing_nearby: '📍', new_message: '💬',
+    transaction_completed: '✅', dispute_opened: '⚠️', dispute_resolved: '⚖️',
+  };
+  return {
+    ic: iconMap[n.type] || '🔔',
+    text: (n.title || '') + (n.body ? ': ' + n.body : ''),
+    time: timeAgo(n.created_at),
+    unread: !n.is_read,
+    ai: n.type?.startsWith('kaero_') || n.type === 'new_listing_nearby',
+    col: null,
+    _raw: n,
+  };
+}
+
+function adaptTransaction(t) {
+  if (!t) return null;
+  if (t._raw) return t;
+  return {
+    id: t.id,
+    name: t.listing_title || 'Transaction',
+    price: Number(t.agreed_price ?? 0),
+    type: t.buyer_id === t._currentUserId ? 'Bought' : 'Sold',
+    time: timeAgo(t.created_at),
+    status: t.payment_status || 'pending',
+    paymentMethod: t.payment_method,
+    buyerId: t.buyer_id,
+    sellerId: t.seller_id,
+    listingId: t.listing_id,
+    _raw: t,
+  };
 }
 
 /* ── WEB SPEECH API HOOK ── */
@@ -1973,22 +2121,118 @@ function SignupPage({ onLogin, onComplete, T: initialT, lang: initialLang, setLa
    HOME — Full reimagined
 ═══════════════════════════════════════════════════════════ */
 function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
-  const totalOffers = MY_STORE.reduce((s, l) => s + l.offers.length, 0);
   const [storeFilter, setStoreFilter] = useState("price");
   const [activeNav, setActiveNav] = useState("home");
   const [voiceActive, setVoiceActive] = useState(false);
 
-  const userName = user?.name || 'User';
+  // Real data state (with mock fallbacks)
+  const [nearbyListings, setNearbyListings] = useState([]);
+  const [myStoreItems, setMyStoreItems] = useState([]);
+  const [wallet, setWallet] = useState({ total: 0, released: 0, escrow: 0, disputes: 0 });
+  const [notifCount, setNotifCount] = useState(0);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [chatUnread, setChatUnread] = useState(0);
+  const [nearbyCount, setNearbyCount] = useState(0);
+
+  // Fetch real data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      // Wallet
+      walletApi.me().then(r => {
+        setWallet({
+          total: Number(r.data.balance ?? 0) + Number(r.data.pending ?? 0),
+          released: Number(r.data.balance ?? 0),
+          escrow: Number(r.data.pending ?? 0),
+          disputes: 0,
+        });
+      }).catch(() => {});
+
+      // Notifications (badge + recent activity)
+      notificationApi.list().then(r => {
+        setNotifCount(r.data.unread_count || 0);
+        if (r.data.notifications?.length > 0) {
+          setRecentActivity(r.data.notifications.slice(0, 4).map(n => ({
+            txt: (n.title || '') + (n.body ? ': ' + n.body : ''),
+            time: timeAgo(n.created_at),
+            dot: G.green,
+            unread: !n.is_read,
+          })));
+        }
+      }).catch(() => {});
+
+      // Chat unread count
+      chatApi.list().then(r => {
+        const total = (r.data.chats || []).reduce((s, c) => s + (c.unread_count || 0), 0);
+        setChatUnread(total);
+      }).catch(() => {});
+
+      // My Store items
+      if (user?.id) {
+        listingApi.byUser(user.id).then(r => {
+          if (r.data.listings?.length > 0) {
+            const adapted = r.data.listings.map(l => ({
+              ...adaptListing(l),
+              offers: [],
+            }));
+            setMyStoreItems(adapted);
+            // Fetch offers for each listing
+            adapted.forEach(item => {
+              if (item._raw?.id) {
+                offerApi.byListing(item._raw.id).then(or => {
+                  if (or.data.offers?.length > 0) {
+                    setMyStoreItems(prev => prev.map(si =>
+                      si.id === item.id ? { ...si, offers: or.data.offers.map(adaptOffer) } : si
+                    ));
+                  }
+                }).catch(() => {});
+              }
+            });
+          }
+        }).catch(() => {});
+      }
+
+      // Nearby listings
+      const doFetchListings = (lat, lng) => {
+        listingApi.nearby({ lat, lng, radius: 50000, limit: 20, sort: 'distance' })
+          .then(r => {
+            if (r.data.listings?.length > 0) {
+              setNearbyListings(r.data.listings.map(adaptListing));
+              setNearbyCount(r.data.listings.length);
+            }
+          })
+          .catch(() => {});
+      };
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            doFetchListings(pos.coords.latitude, pos.coords.longitude);
+            // Update user location on backend
+            userApi.updateLocation(pos.coords.latitude, pos.coords.longitude).catch(() => {});
+          },
+          () => doFetchListings(30.0444, 31.2357),
+          { timeout: 5000 }
+        );
+      } else {
+        doFetchListings(30.0444, 31.2357);
+      }
+    };
+
+    fetchData();
+  }, [user?.id]);
+
+  const totalOffers = myStoreItems.reduce((s, l) => s + (l.offers?.length || 0), 0);
+
+  const userName = user?.name || user?.full_name || 'User';
   const userInitials = (() => {
     const parts = userName.trim().split(/\s+/);
     if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     return userName.slice(0, 2).toUpperCase() || '?';
   })();
 
-  const sortedStore = [...MY_STORE].filter(i => !i.sold).sort((a, b) => {
-    // For each item, find the "best" offer based on filter, then sort items by that
+  const sortedStore = [...myStoreItems].filter(i => !i.sold).sort((a, b) => {
     const bestOffer = (item) => {
-      if (!item.offers.length) return { price: 0, km: 999, rating: 0 };
+      if (!item.offers?.length) return { price: 0, km: 999, rating: 0 };
       if (storeFilter === "price") return item.offers.reduce((b, o) => o.price > b.price ? o : b);
       if (storeFilter === "distance") return item.offers.reduce((b, o) => o.km < b.km ? o : b);
       if (storeFilter === "trust") return item.offers.reduce((b, o) => o.rating > b.rating ? o : b);
@@ -2002,7 +2246,7 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
   });
 
   const getBestOfferLabel = (item) => {
-    if (!item.offers.length) return null;
+    if (!item.offers?.length) return null;
     if (storeFilter === "price") {
       const best = item.offers.reduce((b, o) => o.price > b.price ? o : b);
       return `Best: ${(best.price / 1000).toFixed(0)}K`;
@@ -2022,7 +2266,7 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
     { id: "home", Ic: Icon.Home, label: T.home },
     { id: "market", Ic: Icon.Market, label: T.market },
     { id: "sell", Ic: Icon.Plus, label: T.sell, big: true },
-    { id: "chat", Ic: Icon.Chat, label: T.chat, badge: 3 },
+    { id: "chat", Ic: Icon.Chat, label: T.chat, badge: chatUnread },
     { id: "profile", Ic: Icon.Profile, label: T.profile },
   ];
 
@@ -2065,7 +2309,7 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
               background: G.greenDim, border: `1px solid ${G.green}44`,
               display: "flex", alignItems: "center", justifyContent: "center"
             }}><Icon.Bell size={15} col={G.green} /></div>
-            <Badge n={4} />
+            <Badge n={notifCount} />
           </div>
           <div onClick={() => go("settings")} style={{
             width: 30, height: 30, borderRadius: "50%",
@@ -2159,7 +2403,7 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
             <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
               <div style={{ background: G.greenDim, border: `1px solid ${G.green}44`, borderRadius: 99, padding: "3px 10px" }}>
                 <span style={{ fontSize: 11, fontWeight: 800, color: G.green }}>
-                  {MY_STORE.length} items
+                  {myStoreItems.length} items
                 </span>
               </div>
               <button onClick={() => go("store")} style={{
@@ -2213,7 +2457,7 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
                   <img src={item.img} alt={item.name}
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     onError={e => e.target.style.display = "none"} />
-                  {item.offers.length > 0 && (
+                  {(item.offers?.length || 0) > 0 && (
                     <div style={{
                       position: "absolute", top: 5, right: 5,
                       width: 20, height: 20, borderRadius: "50%", background: G.green,
@@ -2236,7 +2480,7 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
                   <div style={{ fontSize: 9, color: G.muted, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
                     <Icon.Eye size={10} col={G.muted} /> {item.views}
                     <span style={{ color: G.border2 }}>·</span>
-                    <Icon.Msg size={10} col={G.muted} /> {item.offers.length} offers
+                    <Icon.Msg size={10} col={G.muted} /> {item.offers?.length || 0} offers
                   </div>
                   {getBestOfferLabel(item) && (() => {
                     const labelCol = G.green;
@@ -2333,7 +2577,7 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
             <div style={{ fontSize: 15, fontWeight: 900, color: G.text }}>
               {T.exploreMarket} <span style={{ color: G.indigo }}>2km</span>
             </div>
-            <div style={{ fontSize: 12, color: G.muted, marginTop: 2 }}>47 {T.items} · Map + Voice</div>
+            <div style={{ fontSize: 12, color: G.muted, marginTop: 2 }}>{nearbyCount || nearbyListings.length} {T.items} · Map + Voice</div>
           </div>
           <Icon.ChevronRight size={20} col={G.muted} />
         </button>
@@ -2343,7 +2587,7 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
         {/* ── HOT NEAR YOU ── */}
         <SH title={T.hotNearYou} action={T.seeAll} onAction={() => go("buy_cats")} />
         <div style={{ display: "flex", gap: 11, overflowX: "auto", paddingBottom: 4, marginBottom: 12 }}>
-          {[...PRODUCTS].sort((a, b) => a.km - b.km).slice(0, 6).map(p => (
+          {[...nearbyListings].sort((a, b) => a.km - b.km).slice(0, 6).map(p => (
             <div key={p.id} onClick={() => go("product", p)}
               style={{
                 flexShrink: 0, width: 148, background: G.card, borderRadius: 16,
@@ -2384,12 +2628,9 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
 
         {/* ── RECENT ACTIVITY ── */}
         <SH title={T.recentActivity} />
-        {[
-          { txt: "Youssef M. made an offer: 16,000 EGP for iPhone 13 Pro", time: "2m", dot: G.green, unread: true },
-          { txt: "Lina K. wants to exchange AirPods Pro + cash for iPhone 13", time: "15m", dot: G.green, unread: true },
-          { txt: "New: AirPods Pro 2nd Gen · 0.9 km · 4,200 EGP", time: "1h", dot: G.green, unread: false },
-          { txt: "Your MacBook Air sold! Payment released ✅", time: "2h", dot: G.green, unread: false },
-        ].map((n, i) => (
+        {(recentActivity.length > 0 ? recentActivity : [
+          { txt: "No recent activity yet", time: "", dot: G.muted, unread: false },
+        ]).map((n, i) => (
           <div key={i} style={{
             background: G.card, borderRadius: 13, padding: "11px 13px",
             marginBottom: 7, border: `1px solid ${n.unread ? n.dot + "40" : G.border}`,
@@ -2414,7 +2655,7 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 11, color: G.muted, fontWeight: 700 }}>{T.escrowWallet}</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: G.text }}>45,320 <span style={{ fontSize: 13, color: G.muted }}>EGP</span></div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: G.text }}>{wallet.total.toLocaleString()} <span style={{ fontSize: 13, color: G.muted }}>EGP</span></div>
             </div>
             <div style={{
               width: 44, height: 44, borderRadius: 14, background: G.greenDim,
@@ -2424,9 +2665,9 @@ function Home({ go, T, isDark, setIsDark, lang, setLang, user }) {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             {[
-              { ic: "✓", lb: T.released, v: "32,000", col: G.green },
-              { ic: "~", lb: T.inEscrow, v: "13,320", col: G.green },
-              { ic: "!", lb: T.disputes, v: "0", col: G.muted },
+              { ic: "✓", lb: T.released, v: wallet.released.toLocaleString(), col: G.green },
+              { ic: "~", lb: T.inEscrow, v: wallet.escrow.toLocaleString(), col: G.green },
+              { ic: "!", lb: T.disputes, v: String(wallet.disputes), col: G.muted },
             ].map(({ ic, lb, v, col }) => (
               <div key={lb} style={{ background: "rgba(255,255,255,.04)", borderRadius: 10, padding: "8px 10px", border: `1px solid ${col}22` }}>
                 <div style={{ fontSize: 11, color: col, fontWeight: 800 }}>{ic}</div>
@@ -2549,8 +2790,16 @@ const FULL_CATS = [
 function BuyCats({ go, back, T }) {
   const [q, setQ] = useState("");
   const [selectedCat, setSelectedCat] = useState(null);
+  const [featuredListings, setFeaturedListings] = useState([]);
   const voice = useVoice({ lang: "ar-EG", onResult: (t) => setQ(t) });
   const handleVoice = () => { voice.toggle(); };
+
+  // Fetch featured listings
+  useEffect(() => {
+    listingApi.nearby({ lat: 30.0444, lng: 31.2357, radius: 50000, limit: 6, sort: 'distance' })
+      .then(r => { if (r.data.listings?.length > 0) setFeaturedListings(r.data.listings.map(adaptListing)); })
+      .catch(() => {});
+  }, []);
 
   if (selectedCat) {
     return (
@@ -2577,7 +2826,7 @@ function BuyCats({ go, back, T }) {
             ))}
           </div>
           <div style={{ fontSize: 11, color: G.muted, letterSpacing: 1.5, fontWeight: 700, marginBottom: 12 }}>FEATURED</div>
-          {PRODUCTS.filter(p => p.category === selectedCat.id || selectedCat.id === "phones" && p.category === "phones").slice(0, 4).map(p => (
+          {featuredListings.filter(p => p.category === selectedCat.id || selectedCat.id === "phones" && p.category === "phones").slice(0, 4).map(p => (
             <BuyCard key={p.id} item={p} onClick={() => go("product", p)} />
           ))}
         </div>
@@ -2650,7 +2899,7 @@ function BuyCats({ go, back, T }) {
           ))}
         </div>
         <div style={{ fontSize: 11, color: G.muted, letterSpacing: 1.5, fontWeight: 700, marginBottom: 12 }}>FEATURED NEAR YOU</div>
-        {PRODUCTS.slice(0, 3).map(p => (
+        {featuredListings.slice(0, 3).map(p => (
           <BuyCard key={p.id} item={p} onClick={() => go("product", p)} />
         ))}
       </div>
@@ -2664,18 +2913,33 @@ function BuyCats({ go, back, T }) {
 function BuyList({ go, back, data, T }) {
   const [sort, setSort] = useState("distance");
   const [q, setQ] = useState("");
-  const items = [...PRODUCTS]
+  const [allItems, setAllItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const searchQuery = data?.query || q;
+    if (searchQuery) {
+      listingApi.search({ q: searchQuery, limit: 50 })
+        .then(r => { if (r.data.listings?.length > 0) setAllItems(r.data.listings.map(adaptListing)); })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    } else {
+      listingApi.nearby({ lat: 30.0444, lng: 31.2357, radius: 50000, limit: 50, sort: 'distance' })
+        .then(r => { if (r.data.listings?.length > 0) setAllItems(r.data.listings.map(adaptListing)); })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [data?.query]);
+
+  const items = [...allItems]
     .filter(p => {
-      // Filter by category if set
       if (data?.cat?.id && data.cat.id !== "all") {
         if (!p.name.toLowerCase().includes(data.cat.id) && p.category !== data.cat.id) {
-          // Check by sub-label too
           const label = (data.cat.label || "").toLowerCase();
           if (!p.name.toLowerCase().includes(label.split(" ")[0]) && p.category !== data.cat.id) return false;
         }
       }
-      // Filter by search query
-      if (q) return p.name.toLowerCase().includes(q.toLowerCase()) || p.brand.toLowerCase().includes(q.toLowerCase());
+      if (q) return p.name.toLowerCase().includes(q.toLowerCase()) || (p.brand || '').toLowerCase().includes(q.toLowerCase());
       return true;
     })
     .sort((a, b) => sort === "price" ? a.price - b.price : sort === "rating" ? b.rating - a.rating : a.km - b.km);
@@ -2764,9 +3028,17 @@ function VoiceSearch({ back, go, T }) {
     },
   });
 
+  // Fetch real listings for search pool
+  const [searchPool, setSearchPool] = useState([]);
+  useEffect(() => {
+    listingApi.nearby({ lat: 30.0444, lng: 31.2357, radius: 50000, limit: 50 })
+      .then(r => { if (r.data.listings?.length > 0) setSearchPool(r.data.listings.map(adaptListing)); })
+      .catch(() => {});
+  }, []);
+
   const localFilter = (q) => {
     const lq = q.toLowerCase();
-    let filtered = [...PRODUCTS];
+    let filtered = [...searchPool];
 
     // Extract item/brand/category keywords
     const catKeywords = {
@@ -2826,8 +3098,8 @@ function VoiceSearch({ back, go, T }) {
     setPhase(3);
     setAiThinking(true);
     const localRes = localFilter(q);
-    const productsSummary = PRODUCTS.slice(0, 12).map(p =>
-      `id:${p.id} name:"${p.name}" price:${p.price} km:${p.km} category:${p.category}`
+    const productsSummary = searchPool.slice(0, 12).map(p =>
+      `id:${p.id} name:"${p.name}" price:${p.price} km:${p.km} category:${p.category || ''}`
     ).join("\n");
     const ai = await callClaude(
       `User voice query: "${q}"\n\nAvailable products:\n${productsSummary}\n\nReturn JSON: { "matchedIds": [array of best matching product ids in order], "explanation": "why these match" }`,
@@ -2835,7 +3107,7 @@ function VoiceSearch({ back, go, T }) {
     );
     setAiThinking(false);
     if (ai?.matchedIds?.length > 0) {
-      const ordered = ai.matchedIds.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
+      const ordered = ai.matchedIds.map(id => searchPool.find(p => p.id === id)).filter(Boolean);
       const rest = localRes.filter(p => !ai.matchedIds.includes(p.id));
       setResults([...ordered, ...rest]);
       setAiExplanation(ai.explanation || "");
@@ -3023,14 +3295,56 @@ const PRODUCT_IMGS = {
 };
 
 function ProductDetail({ item, back, go, T }) {
-  const p = item || PRODUCTS[0];
-  const imgs = PRODUCT_IMGS[p.id] || [p.img];
+  const p = item || { name: "Item", price: 0, img: "", seller: "Seller", sellerTrust: 0, desc: "", km: 0, rating: 0, condition: "Good" };
+  const imgs = useMemo(() => {
+    if (p.additionalImgs?.length > 0) return [p.img, ...p.additionalImgs].filter(Boolean);
+    if (PRODUCT_IMGS[p.id]) return PRODUCT_IMGS[p.id];
+    return [p.img].filter(Boolean);
+  }, [p]);
   const [imgIdx, setImgIdx] = useState(0);
   const [liked, setLiked] = useState(false);
   const [offerOpen, setOfferOpen] = useState(false);
   const [tab, setTab] = useState("info");
   const [safetyStep, setSafetyStep] = useState(0);
   const [showSafety, setShowSafety] = useState(false);
+  const [sellerReviews, setSellerReviews] = useState([]);
+  const [sellerStats, setSellerStats] = useState(null);
+
+  // Fetch seller reviews and stats
+  useEffect(() => {
+    if (p.sellerId && typeof p.sellerId === 'string') {
+      userApi.get(p.sellerId).then(r => {
+        const u = r.data.user || r.data;
+        setSellerStats({
+          trustScore: u.trust_score,
+          totalReviews: u.total_reviews || 0,
+          rating: u.trust_score,
+        });
+      }).catch(() => {});
+
+      reviewApi.byUser(p.sellerId).then(r => {
+        if (r.data.reviews?.length > 0) {
+          setSellerReviews(r.data.reviews.map(rv => ({
+            from: rv.reviewer_name || 'User',
+            av: (rv.reviewer_name || 'U')[0].toUpperCase(),
+            rating: rv.rating,
+            text: rv.review_text || '',
+            time: timeAgo(rv.created_at),
+          })));
+        }
+      }).catch(() => {});
+    }
+
+    // Toggle favorite
+    if (p._raw?.id && liked) {
+      favoriteApi.toggle(p._raw.id).catch(() => {});
+    }
+  }, [p.sellerId]);
+
+  const handleLike = () => {
+    setLiked(!liked);
+    if (p._raw?.id) favoriteApi.toggle(p._raw.id).catch(() => {});
+  };
 
   if (offerOpen) return (
     <OfferPage p={p} back={() => setOfferOpen(false)} go={go} />
@@ -3084,7 +3398,7 @@ function ProductDetail({ item, back, go, T }) {
           borderRadius: 12, background: "rgba(0,0,0,.6)", backdropFilter: "blur(8px)",
           border: "none", cursor: "pointer", fontSize: 16
         }}>🏠</button>
-        <button onClick={() => setLiked(l => !l)} style={{
+        <button onClick={handleLike} style={{
           position: "absolute", top: 14, right: 10, width: 38, height: 38,
           borderRadius: 12, background: "rgba(0,0,0,.6)", backdropFilter: "blur(8px)",
           border: "none", cursor: "pointer", fontSize: 20
@@ -3206,11 +3520,11 @@ function ProductDetail({ item, back, go, T }) {
                 ))}
               </div>
             </div>
-            {[
+            {(sellerReviews.length > 0 ? sellerReviews : [
               { from: "Youssef M.", av: "Y", rating: 5, text: "Item exactly as described! Very honest seller, quick meetup.", time: "3 days ago" },
               { from: "Sara K.", av: "S", rating: 5, text: "Fast response, great condition, no issues at all.", time: "1 week ago" },
               { from: "Karim H.", av: "K", rating: 4, text: "Legit seller, minor delay but communicated well throughout.", time: "2 weeks ago" },
-            ].map((r, i) => (
+            ]).map((r, i) => (
               <div key={i} style={{
                 background: G.card, borderRadius: 14, padding: 14,
                 marginBottom: 10, border: `1px solid ${G.border}`
@@ -3274,7 +3588,41 @@ function OfferPage({ p, back, go }) {
   const [payMethod, setPayMethod] = useState("escrow");
   const [selectedItem, setSelectedItem] = useState(null);
   const [sent, setSent] = useState(false);
-  const myItems = MY_STORE.filter(i => !i.sold);
+  const [sending, setSending] = useState(false);
+  const [myItems, setMyItems] = useState([]);
+
+  // Fetch user's own listings for exchange
+  useEffect(() => {
+    const user = getStoredUser();
+    if (user?.id) {
+      listingApi.byUser(user.id).then(r => {
+        if (r.data.listings?.length > 0) {
+          setMyItems(r.data.listings.map(adaptListing).filter(l => !l.sold));
+        }
+      }).catch(() => {});
+    }
+  }, []);
+
+  const handleSendOffer = async () => {
+    setSending(true);
+    const listingId = p._raw?.id || p.id;
+    // If mock data (integer id), just do local flow
+    if (typeof listingId === 'number') { setSent(true); setSending(false); return; }
+    try {
+      await offerApi.create({
+        listing_id: listingId,
+        offered_price: Number(offerAmt),
+        message: '',
+        is_exchange_proposal: !!selectedItem,
+        exchange_listing_id: selectedItem?._raw?.id || undefined,
+      });
+      setSent(true);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Could not send offer');
+    } finally {
+      setSending(false);
+    }
+  };
 
   if (sent) return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: G.bg }}>
@@ -3392,7 +3740,7 @@ function OfferPage({ p, back, go }) {
           </div>
         )}
 
-        <Btn full col={G.green} onClick={() => setSent(true)}>
+        <Btn full col={G.green} onClick={handleSendOffer} disabled={sending}>
           🚀 Send Offer →
         </Btn>
       </div>
@@ -3524,9 +3872,66 @@ function Sell({ back, go, T }) {
     setAiResult({ ...result, title: editTitle, category: editCategory, condition: editCondition, desc: editDesc, price: editPrice });
     setEditMode(false);
   };
+  const fileInputRef = useRef(null);
+
   const takePhoto = () => {
     setFlash(true); setTimeout(() => setFlash(false), 300);
     setTimeout(() => { setCapturedPhoto("https://placehold.co/400x400/019F45/white?text=Kaero"); setCameraOpen(false); setStep(1); }, 400);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const base64 = ev.target.result.split(',')[1];
+        try {
+          const r = await uploadApi.base64(base64, file.type || 'image/jpeg');
+          setCapturedPhoto(r.data.url);
+        } catch {
+          setCapturedPhoto(ev.target.result); // Use data URI as fallback
+        }
+        setCameraOpen(false);
+        setStep(1);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setCapturedPhoto("https://placehold.co/400x400/019F45/white?text=Kaero");
+      setCameraOpen(false);
+      setStep(1);
+    }
+  };
+
+  const conditionMap = { "Like New": "like_new", "Excellent": "like_new", "Good": "good", "Fair": "fair", "Poor": "poor", "New": "new", "Used": "fair" };
+
+  const handlePublish = async () => {
+    setStep(4);
+    try {
+      await listingApi.create({
+        user_edited_title: result.title,
+        user_edited_description: result.desc,
+        final_price: result.price,
+        condition: conditionMap[result.condition] || 'good',
+        lat: 30.0444,
+        lng: 31.2357,
+        primary_image_url: capturedPhoto || 'https://placehold.co/400x400/019F45/white?text=Kaero',
+        verification_images: [{
+          url: capturedPhoto || 'https://placehold.co/400x400/019F45/white?text=Kaero',
+          timestamp: new Date().toISOString(),
+          exif_data: null,
+          hash: 'web-upload',
+        }],
+        ai_generated_title: aiResult?.title || result.title,
+        ai_generated_description: aiResult?.desc || result.desc,
+        ai_suggested_price: aiResult?.price || result.price,
+        is_ai_generated: !!aiResult,
+      });
+      setTimeout(() => go("store"), 1500);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to publish. Please try again.');
+      setStep(3);
+    }
   };
 
   if (editMode) return (
@@ -3574,7 +3979,8 @@ function Sell({ back, go, T }) {
         </div>
       </div>
       <div style={{ background: "#111", padding: "20px 0 28px", display: "flex", alignItems: "center", justifyContent: "center", gap: 40 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(255,255,255,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, cursor: "pointer" }}>🎙️</div>
+        <div onClick={() => fileInputRef.current?.click()} style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(255,255,255,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, cursor: "pointer" }}>📁</div>
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
         <button onClick={takePhoto} style={{ width: 72, height: 72, borderRadius: "50%", background: "#fff", border: "5px solid rgba(255,255,255,.3)", cursor: "pointer", boxShadow: "0 4px 20px rgba(255,255,255,.3)" }} />
         <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(255,255,255,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, cursor: "pointer" }}>🔄</div>
       </div>
@@ -3680,7 +4086,7 @@ function Sell({ back, go, T }) {
             ))}
             <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
               <Btn col={G.green} outline onClick={openEdit} style={{ flex: 1 }}>✏️ Edit</Btn>
-              <Btn col={G.green} onClick={() => { setStep(4); setTimeout(() => { go("store"); window.__kaeroPublished = true; }, 2000); }} style={{ flex: 2 }}>🚀 Publish → My Store</Btn>
+              <Btn col={G.green} onClick={handlePublish} style={{ flex: 2 }}>🚀 Publish → My Store</Btn>
             </div>
           </>
         )}
@@ -3701,24 +4107,47 @@ function Sell({ back, go, T }) {
 }
 
 function Market({ back, go, T }) {
-  const [radius, setRadius] = useState(2);
+  const [radius, setRadius] = useState(5);
   const [cat, setCat] = useState("All");
   const [listening, setListening] = useState(false);
   const [voiceQ, setVoiceQ] = useState("");
-  const pins = [
-    { x: 44, y: 30, em: "📱", p: "32K", name: "iPhone 15", item: PRODUCTS[0], km: 0.8 },
-    { x: 67, y: 50, em: "💻", p: "68K", name: "MacBook", item: PRODUCTS[1], km: 3.2 },
-    { x: 22, y: 58, em: "🎧", p: "8.5K", name: "Sony WH", item: PRODUCTS[2], km: 1.5 },
-    { x: 78, y: 24, em: "📷", p: "18K", name: "Canon R50", item: PRODUCTS[3], km: 4.8 },
-    { x: 56, y: 70, em: "🎮", p: "28K", name: "PS5", item: PRODUCTS[5], km: 2.1 },
-    { x: 34, y: 44, em: "🚁", p: "25K", name: "DJI Mini", item: PRODUCTS[6], km: 6.5 },
-  ];
+  const [mapListings, setMapListings] = useState([]);
+
+  // Fetch nearby listings for map
+  useEffect(() => {
+    const doFetch = (lat, lng) => {
+      listingApi.nearby({ lat, lng, radius: radius * 1000, limit: 30, sort: 'distance' })
+        .then(r => { if (r.data.listings?.length > 0) setMapListings(r.data.listings.map(adaptListing)); })
+        .catch(() => {});
+    };
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => doFetch(pos.coords.latitude, pos.coords.longitude),
+        () => doFetch(30.0444, 31.2357),
+        { timeout: 5000 }
+      );
+    } else {
+      doFetch(30.0444, 31.2357);
+    }
+  }, [radius]);
+
+  const categoryEmojis = { phones: "📱", computers: "💻", audio: "🎧", cameras: "📷", gaming: "🎮", drones: "🚁", tablets: "📱", vehicles: "🚗", furniture: "🛋️", fashion: "👕", other: "📦" };
+
+  const pins = mapListings.map((item, idx) => ({
+    x: 15 + ((idx * 37) % 70),
+    y: 15 + ((idx * 23) % 65),
+    em: categoryEmojis[item.category] || "📦",
+    p: item.price >= 1000 ? `${(item.price / 1000).toFixed(0)}K` : String(item.price),
+    name: (item.name || '').split(' ').slice(0, 2).join(' '),
+    item: item,
+    km: item.km,
+  }));
+
   const handleVoice = () => {
     setListening(true);
     setTimeout(() => { setListening(false); setVoiceQ("iPhone under 30K within 2km"); }, 2800);
   };
   const catMap = { "Electronics": ["phones", "computers", "audio", "cameras", "tablets", "drones"], "Vehicles": ["vehicles"], "Furniture": ["furniture"], "Fashion": ["fashion"], "Gaming": ["gaming"] };
-  /* Functional radius + category filter */
   const filteredPins = pins
     .filter(pin => pin.km <= radius)
     .filter(pin => cat === "All" || (catMap[cat] && catMap[cat].includes(pin.item.category)));
@@ -3865,9 +4294,10 @@ function Market({ back, go, T }) {
 function MyStore({ back, go, T, user }) {
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("price");
-  const [storeItems, setStoreItems] = useState(MY_STORE);
+  const [storeItems, setStoreItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const userName = user?.name || "Anas";
+  const userName = user?.name || user?.full_name || "User";
   const userInitials = (() => {
     const parts = userName.trim().split(/\s+/);
     if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -3875,14 +4305,35 @@ function MyStore({ back, go, T, user }) {
   })();
 
   useEffect(() => {
-    if (window.__kaeroPublish) {
-      delete window.__kaeroPublish;
-      const newItem = { id: 999, name: "iPhone 13 Pro 256GB Alpine Green", brand: "Apple", price: 17000, km: 0, rating: 0, condition: "Like New", sold: false, img: "https://placehold.co/400x400/019F45/white?text=Kaero", views: 0, aiPrice: 16800, offers: [] };
-      setStoreItems(prev => [newItem, ...prev]);
+    if (!user?.id) {
+      setStoreItems([]);
+      setLoading(false);
+      return;
     }
-  }, []);
+    listingApi.byUser(user.id).then(r => {
+      if (r.data.listings?.length > 0) {
+        const adapted = r.data.listings.map(l => ({ ...adaptListing(l), offers: [] }));
+        setStoreItems(adapted);
+        // Fetch offers for each listing
+        adapted.forEach(item => {
+          if (item._raw?.id) {
+            offerApi.byListing(item._raw.id).then(or => {
+              if (or.data.offers?.length > 0) {
+                setStoreItems(prev => prev.map(si =>
+                  si.id === item.id ? { ...si, offers: or.data.offers.map(adaptOffer) } : si
+                ));
+              }
+            }).catch(() => {});
+          }
+        });
+      } else {
+        setStoreItems([]);
+      }
+    }).catch(() => setStoreItems([]))
+      .finally(() => setLoading(false));
+  }, [user?.id]);
 
-  const totalOffers = storeItems.reduce((s, l) => s + l.offers.length, 0);
+  const totalOffers = storeItems.reduce((s, l) => s + (l.offers?.length || 0), 0);
   const sorted = [...storeItems]
     .filter(l => filter === "sold" ? l.sold : filter === "active" ? !l.sold : true)
     .sort((a, b) => sort === "price" ? b.price - a.price : sort === "km" ? a.km - b.km : b.rating - a.rating);
@@ -3947,7 +4398,7 @@ function StoreCard({ item, onClick }) {
             fontSize: 10, fontWeight: 800, color: "#fff", letterSpacing: 1
           }}>SOLD</div>
         )}
-        {item.offers.length > 0 && !item.sold && (
+        {(item.offers?.length || 0) > 0 && !item.sold && (
           <div style={{
             position: "absolute", top: 5, right: 5, width: 22, height: 22,
             borderRadius: "50%", background: G.green, display: "flex", alignItems: "center",
@@ -3970,7 +4421,7 @@ function StoreCard({ item, onClick }) {
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
           {item.rating > 0 && <Stars n={item.rating} size={11} />}
           {item.views > 0 && <Chip col={G.muted} sm>👁 {item.views}</Chip>}
-          {item.offers.length > 0 && !item.sold && (
+          {(item.offers?.length || 0) > 0 && !item.sold && (
             <Chip col={G.cyan} sm>💬 {item.offers.length} offer{item.offers.length > 1 ? "s" : ""}</Chip>
           )}
           {item.sold && <Chip col={G.muted} sm>Sold</Chip>}
@@ -3985,12 +4436,56 @@ function StoreCard({ item, onClick }) {
    STORE OFFERS — with prominent exchange
 ═══════════════════════════════════════════════════════════ */
 function StoreOffers({ item, back, go, T }) {
-  const it = item || MY_STORE[0];
+  const it = item || { name: "Item", price: 0, img: "", offers: [] };
   const [tab, setTab] = useState("offers");
   const [accepted, setAccepted] = useState([]);
   const [declined, setDeclined] = useState([]);
   const [counter, setCounter] = useState({});
   const [counterOpen, setCounterOpen] = useState(null);
+  const [offers, setOffers] = useState(it.offers || []);
+
+  // Fetch real offers
+  useEffect(() => {
+    const listingId = it._raw?.id || it.id;
+    if (typeof listingId === 'string') {
+      offerApi.byListing(listingId).then(r => {
+        if (r.data.offers?.length > 0) setOffers(r.data.offers.map(adaptOffer));
+      }).catch(() => {});
+    }
+  }, [it._raw?.id, it.id]);
+
+  const handleAccept = async (offerId, idx) => {
+    try {
+      await offerApi.accept(offerId);
+      setAccepted(a => [...a, idx]);
+      setCounterOpen(null);
+    } catch (e) {
+      // Fallback to local state
+      setAccepted(a => [...a, idx]);
+      setCounterOpen(null);
+    }
+  };
+
+  const handleDecline = async (offerId, idx) => {
+    try {
+      await offerApi.reject(offerId);
+      setDeclined(d => [...d, idx]);
+    } catch (e) {
+      setDeclined(d => [...d, idx]);
+    }
+  };
+
+  const handleCounter = async (offerId, idx) => {
+    const price = Number(counter[idx]);
+    if (!price) return;
+    try {
+      await offerApi.counter(offerId, price);
+      setCounterOpen(null);
+      setOffers(prev => prev.map((o, i) => i === idx ? { ...o, status: 'countered', counterPrice: price } : o));
+    } catch (e) {
+      setCounterOpen(null);
+    }
+  };
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: G.bg }}>
@@ -4027,14 +4522,14 @@ function StoreOffers({ item, back, go, T }) {
               color: tab === t ? "#fff" : G.muted, fontSize: 12, fontWeight: 700,
               cursor: "pointer", transition: "all .2s"
             }}>
-              {t === "offers" ? `💬 Offers (${it.offers.length})` : "📊 Analytics"}
+              {t === "offers" ? `💬 Offers (${offers.length})` : "📊 Analytics"}
             </div>
           ))}
         </div>
 
         {tab === "offers" && (
           <>
-            {it.offers.length === 0 && (
+            {offers.length === 0 && (
               <div style={{ textAlign: "center", padding: "40px 20px", color: G.muted, fontSize: 14 }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>😴</div>No offers yet. Your listing is live!
               </div>
@@ -4048,7 +4543,7 @@ function StoreOffers({ item, back, go, T }) {
                 <div style={{ fontSize: 12, color: G.muted, marginTop: 4 }}>Buyer has 3 days to inspect. Funds release after confirmation.</div>
               </div>
             )}
-            {it.offers.map((of, i) => {
+            {offers.map((of, i) => {
               const isAcc = accepted.includes(i), isDec = declined.includes(i), isCtr = counterOpen === i;
               const hasExchange = !!of.exchange;
               return (
@@ -4167,19 +4662,19 @@ function StoreOffers({ item, back, go, T }) {
                     }}>Declined</div>
                   ) : (
                     <div style={{ display: "flex", gap: 7 }}>
-                      <button onClick={() => setDeclined(d => [...d, i])}
+                      <button onClick={() => handleDecline(of._raw?.id || of.id, i)}
                         style={{
                           flex: 1, background: G.cardHi, border: `1.5px solid ${G.border}`,
                           borderRadius: 11, padding: "9px", fontFamily: "inherit",
                           fontSize: 12, fontWeight: 700, color: G.muted, cursor: "pointer"
                         }}>Decline</button>
-                      <button onClick={() => setCounterOpen(isCtr ? null : i)}
+                      <button onClick={() => isCtr ? handleCounter(of._raw?.id || of.id, i) : setCounterOpen(i)}
                         style={{
                           flex: 1, background: G.greenDim, border: `1.5px solid ${G.green}44`,
                           borderRadius: 11, padding: "9px", fontFamily: "inherit",
                           fontSize: 12, fontWeight: 700, color: G.green, cursor: "pointer"
-                        }}>Counter</button>
-                      <button onClick={() => { setAccepted(a => [...a, i]); setCounterOpen(null); }}
+                        }}>{isCtr ? "Send" : "Counter"}</button>
+                      <button onClick={() => handleAccept(of._raw?.id || of.id, i)}
                         style={{
                           flex: 2, background: G.green, border: "none",
                           borderRadius: 11, padding: "9px", fontFamily: "inherit",
@@ -4247,15 +4742,12 @@ const CONVERSATIONS = [
 ];
 
 function Chat({ item, back, isDark, T }) {
-  const [activeConvo, setActiveConvo] = useState(item ? CONVERSATIONS[0] : null);
-  const p = activeConvo?.item || item || PRODUCTS[0];
-  const [msgs, setMsgs] = useState([
-    { from: "them", text: `Hi! Is the ${p.name} still available?`, time: "10:14", offer: false },
-    { from: "me", text: "Yes it is! Just listed it today.", time: "10:16", offer: false },
-    { from: "them", text: `Would you take ${(p.price - 2000).toLocaleString()} EGP?`, time: "10:18", offer: true },
-    { from: "me", text: `I can do ${(p.price - 1000).toLocaleString()} EGP, firm.`, time: "10:20", offer: false },
-    { from: "them", text: "Deal! When can we meet?", time: "10:22", offer: false },
-  ]);
+  const [conversations, setConversations] = useState([]);
+  const [activeConvo, setActiveConvo] = useState(null);
+  const [chatId, setChatId] = useState(null);
+  const currentUserId = getStoredUser()?.id;
+  const p = activeConvo?.item || item || { name: "Item", price: 0, img: "" };
+  const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState("");
   const [offerMode, setOfferMode] = useState(false);
   const [offerAmt, setOfferAmt] = useState(String(p.price - 1000));
@@ -4264,10 +4756,79 @@ function Chat({ item, back, isDark, T }) {
   const [callActive, setCallActive] = useState(false);
   const [callTimer, setCallTimer] = useState(0);
   const [flash, setFlash] = useState(false);
+  const [chatMyItems, setChatMyItems] = useState([]);
   const endRef = useRef(null);
   const timerRef = useRef(null);
   const quickReplies = [T?.when || "When can you meet?", T?.isNegotiable || "Is price negotiable?", "Can you deliver?", "Still available?"];
   useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
+
+  // Fetch user's own listings for exchange tray
+  useEffect(() => {
+    const u = getStoredUser();
+    if (u?.id) {
+      listingApi.byUser(u.id).then(r => {
+        if (r.data.listings?.length > 0) setChatMyItems(r.data.listings.map(adaptListing));
+      }).catch(() => {});
+    }
+  }, []);
+
+  // Fetch chat list
+  useEffect(() => {
+    chatApi.list().then(r => {
+      if (r.data.chats?.length > 0) {
+        const adapted = r.data.chats.map(adaptChat);
+        setConversations(adapted);
+        // If opened from product detail (item prop), find matching chat or create one
+        if (item?._raw?.id) {
+          const existing = adapted.find(c => c.listingId === item._raw.id);
+          if (existing) {
+            setActiveConvo(existing);
+            setChatId(existing._raw?.id || existing.id);
+          } else {
+            chatApi.create(item._raw.id).then(cr => {
+              setChatId(cr.data.chat.id);
+              setActiveConvo({ ...adaptChat(cr.data.chat), item: p });
+            }).catch(() => {});
+          }
+        } else if (!activeConvo && adapted.length > 0) {
+          setActiveConvo(adapted[0]);
+          setChatId(adapted[0]._raw?.id || adapted[0].id);
+        }
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Fetch messages when chatId changes
+  useEffect(() => {
+    if (!chatId || typeof chatId === 'number') {
+      // Mock fallback
+      setMsgs([
+        { from: "them", text: `Hi! Is the ${p.name} still available?`, time: "10:14", offer: false },
+        { from: "me", text: "Yes it is! Just listed it today.", time: "10:16", offer: false },
+        { from: "them", text: `Would you take ${(p.price - 2000).toLocaleString()} EGP?`, time: "10:18", offer: true },
+        { from: "me", text: "Deal! When can we meet?", time: "10:22", offer: false },
+      ]);
+      return;
+    }
+    chatApi.messages(chatId).then(r => {
+      if (r.data.messages?.length > 0) {
+        setMsgs(r.data.messages.map(m => adaptMessage(m, currentUserId)));
+      }
+    }).catch(() => {});
+  }, [chatId]);
+
+  // Poll for new messages every 5s
+  useEffect(() => {
+    if (!chatId || typeof chatId === 'number') return;
+    const poll = setInterval(() => {
+      chatApi.messages(chatId).then(r => {
+        if (r.data.messages?.length > 0) {
+          setMsgs(r.data.messages.map(m => adaptMessage(m, currentUserId)));
+        }
+      }).catch(() => {});
+    }, 5000);
+    return () => clearInterval(poll);
+  }, [chatId]);
 
   // Call timer
   useEffect(() => {
@@ -4284,23 +4845,30 @@ function Chat({ item, back, isDark, T }) {
 
   const send = () => {
     if (!input.trim()) return;
-    setMsgs(m => [...m, { from: "me", text: input, time: "now", offer: false }]);
+    const text = input;
+    setMsgs(m => [...m, { from: "me", text, time: "now", offer: false }]);
     setInput("");
-    setTimeout(() => {
-      setMsgs(m => [...m, { from: "them", text: "Got it! Sounds good 👍", time: "now", offer: false }]);
-    }, 1200);
+    if (chatId && typeof chatId === 'string') {
+      chatApi.sendMessage(chatId, { message_type: 'text', content: text }).catch(() => {});
+    }
   };
 
   const sendOffer = () => {
-    setMsgs(m => [...m, { from: "me", text: `💰 Offer: ${Number(offerAmt).toLocaleString()} EGP for ${p.name}`, time: "now", offer: true }]);
+    const text = `Offer: ${Number(offerAmt).toLocaleString()} EGP for ${p.name}`;
+    setMsgs(m => [...m, { from: "me", text, time: "now", offer: true }]);
     setOfferMode(false);
-    setTimeout(() => setMsgs(m => [...m, { from: "them", text: "Let me think about it...", time: "now", offer: false }]), 1500);
+    if (chatId && typeof chatId === 'string') {
+      chatApi.sendMessage(chatId, { message_type: 'offer', content: text }).catch(() => {});
+    }
   };
 
   const sendItemOffer = (storeItem) => {
-    setMsgs(m => [...m, { from: "me", text: `🔄 Exchange offer: My ${storeItem.name} (${storeItem.price.toLocaleString()} EGP) for yours`, time: "now", offer: true, isExchange: true }]);
+    const text = `Exchange offer: My ${storeItem.name} (${storeItem.price.toLocaleString()} EGP) for yours`;
+    setMsgs(m => [...m, { from: "me", text, time: "now", offer: true, isExchange: true }]);
     setAttachOpen(false);
-    setTimeout(() => setMsgs(m => [...m, { from: "them", text: "Interesting offer! Tell me more about your item.", time: "now", offer: false }]), 1400);
+    if (chatId && typeof chatId === 'string') {
+      chatApi.sendMessage(chatId, { message_type: 'offer', content: text }).catch(() => {});
+    }
   };
 
   const takePhoto = () => {
@@ -4358,11 +4926,11 @@ function Chat({ item, back, isDark, T }) {
         <div style={{ background: G.surface, padding: "12px 16px", borderBottom: `1.5px solid ${G.border}`, display: "flex", alignItems: "center", gap: 10, flexShrink: 0, boxShadow: `0 2px 10px ${G.shadowSm}` }}>
           <button onClick={back} style={{ width: 36, height: 36, borderRadius: 11, background: G.greenDim, border: `1px solid ${G.green}44`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, color: G.text }}>‹</button>
           <div style={{ fontSize: 16, fontWeight: 800, color: G.text, flex: 1 }}>{T?.messages || "Messages"}</div>
-          <Chip col={G.indigo} sm>{CONVERSATIONS.reduce((s, c) => s + c.unread, 0)} unread</Chip>
+          <Chip col={G.indigo} sm>{conversations.reduce((s, c) => s + (c.unread || 0), 0)} unread</Chip>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "10px 14px" }}>
-          {CONVERSATIONS.map(c => (
-            <div key={c.id} onClick={() => setActiveConvo(c)} style={{ background: G.card, borderRadius: 16, padding: 13, marginBottom: 10, border: `1.5px solid ${c.unread ? G.green + "44" : G.border}`, display: "flex", gap: 12, cursor: "pointer", boxShadow: c.unread ? `0 2px 12px ${G.green}22` : `0 1px 6px ${G.shadow}` }}>
+          {conversations.map(c => (
+            <div key={c.id} onClick={() => { setActiveConvo(c); setChatId(c._raw?.id || c.id); }} style={{ background: G.card, borderRadius: 16, padding: 13, marginBottom: 10, border: `1.5px solid ${c.unread ? G.green + "44" : G.border}`, display: "flex", gap: 12, cursor: "pointer", boxShadow: c.unread ? `0 2px 12px ${G.green}22` : `0 1px 6px ${G.shadow}` }}>
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <Av letter={c.av} size={46} img={c.avImg || SELLER_IMGS[c.av]} />
                 {c.unread > 0 && <div style={{ position: "absolute", top: -2, right: -2, width: 18, height: 18, borderRadius: "50%", background: G.cyan, border: `2px solid ${G.bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, color: "#fff" }}>{c.unread}</div>}
@@ -4458,7 +5026,7 @@ function Chat({ item, back, isDark, T }) {
             <button onClick={() => setAttachOpen(false)} style={{ background: "none", border: "none", fontSize: 16, color: G.muted, cursor: "pointer" }}>✕</button>
           </div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-            {MY_STORE.filter(i => !i.sold).map(si => (
+            {chatMyItems.filter(i => !i.sold).map(si => (
               <div key={si.id} onClick={() => sendItemOffer(si)} style={{ flexShrink: 0, width: 90, cursor: "pointer", textAlign: "center" }}>
                 <div style={{ width: 90, height: 70, borderRadius: 10, overflow: "hidden", border: `1.5px solid ${G.green}44`, marginBottom: 4 }}>
                   <img src={si.img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.target.style.display = "none"} />
@@ -4486,7 +5054,7 @@ function Chat({ item, back, isDark, T }) {
 }
 
 function Payment({ item, back, T }) {
-  const p = item || PRODUCTS[0];
+  const p = item || { name: "Item", price: 0, img: "", seller: "Seller", sellerTrust: 0, desc: "" };
   const [step, setStep] = useState(0);
   const [recording, setRecording] = useState(false);
   const [recDone, setRecDone] = useState(false);
@@ -4494,6 +5062,31 @@ function Payment({ item, back, T }) {
   const [confirmCode] = useState(() => String(Math.floor(100000 + Math.random() * 900000)));
   const [enteredCode, setEnteredCode] = useState("");
   const [codeConfirmed, setCodeConfirmed] = useState(false);
+  const [paying, setPaying] = useState(false);
+
+  const txId = p?.transactionId || p?._raw?.transactionId;
+
+  const handlePaySecurely = async () => {
+    if (!txId) { setStep(3); return; } // No real transaction, mock flow
+    const paymentMethodMap = { visa: 'wallet', vodafone: 'vodafone_cash', fawry: 'fawry', instapay: 'instapay' };
+    setPaying(true);
+    try {
+      await transactionApi.payment(txId, paymentMethodMap[method] || 'cash');
+      setStep(3);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Payment failed');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const handleConfirmReceipt = async () => {
+    if (enteredCode !== confirmCode) { alert('Code does not match'); return; }
+    if (txId) {
+      try { await transactionApi.confirm(txId); } catch (e) { /* continue anyway for UI */ }
+    }
+    setCodeConfirmed(true);
+  };
 
   useEffect(() => {
     if (recording) { const t = setTimeout(() => { setRecording(false); setRecDone(true); }, 3000); return () => clearTimeout(t); }
@@ -4640,8 +5233,8 @@ function Payment({ item, back, T }) {
                   </div>
               ))}
             </div>
-            <Btn full col={G.green} onClick={() => setStep(3)}>
-              🔒 Pay Securely — {Math.round(p.price * 1.02).toLocaleString()} EGP
+            <Btn full col={G.green} onClick={handlePaySecurely} disabled={paying}>
+              {paying ? 'Processing...' : `🔒 Pay Securely — ${Math.round(p.price * 1.02).toLocaleString()} EGP`}
             </Btn>
           </>
         )}
@@ -4697,7 +5290,7 @@ function Payment({ item, back, T }) {
                       borderRadius: 12, padding: "12px 14px", fontSize: 18, fontWeight: 900,
                       color: G.green, outline: "none", fontFamily: "inherit", textAlign: "center", letterSpacing: 8
                     }} />
-                  <button onClick={() => { if (enteredCode === confirmCode) setCodeConfirmed(true); }}
+                  <button onClick={handleConfirmReceipt}
                     disabled={enteredCode.length !== 6}
                     style={{
                       background: enteredCode.length === 6 ? G.green : G.border,
@@ -4751,19 +5344,63 @@ function Payment({ item, back, T }) {
 ═══════════════════════════════════════════════════════════ */
 function Profile({ back, go, user, T }) {
   const profileUser = user || DB.getUser();
-  const profileName = profileUser?.name || 'User';
+  const profileName = profileUser?.name || profileUser?.full_name || 'User';
   const profileInitials = (() => {
     const parts = profileName.trim().split(/\s+/);
     if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     return profileName.slice(0, 2).toUpperCase() || '?';
   })();
   const [tab, setTab] = useState("overview");
-  const reviews = [
+  const [reviews, setReviews] = useState([
     { from: "Youssef M.", rating: 5, text: "Perfect transaction! Very honest seller, item exactly as described.", time: "2 days ago", av: "Y" },
     { from: "Sara K.", rating: 5, text: "Super fast response, met on time. Highly recommend!", time: "1 week ago", av: "S" },
     { from: "Karim H.", rating: 4, text: "Good seller, small delay but communicated well.", time: "2 weeks ago", av: "K" },
-    { from: "Nour A.", rating: 5, text: "Genuinely the best marketplace experience I've had. Kaero escrow gave me confidence.", time: "1 month ago", av: "N" },
-  ];
+    { from: "Nour A.", rating: 5, text: "Genuinely the best marketplace experience I've had.", time: "1 month ago", av: "N" },
+  ]);
+  const [profileStats, setProfileStats] = useState(null);
+  const [txHistory, setTxHistory] = useState([]);
+
+  useEffect(() => {
+    // Fetch real user data
+    userApi.me().then(r => {
+      const u = r.data;
+      setProfileStats({
+        totalSales: u.total_sales || 0,
+        trustScore: Math.round(u.trust_score || 0),
+        totalReviews: u.total_reviews || 0,
+        activeListings: 0,
+        rating: u.trust_score || 0,
+      });
+    }).catch(() => {});
+
+    // Fetch reviews
+    if (profileUser?.id) {
+      reviewApi.byUser(profileUser.id).then(r => {
+        if (r.data.reviews?.length > 0) {
+          setReviews(r.data.reviews.map(rv => ({
+            from: rv.reviewer_name || 'User',
+            av: (rv.reviewer_name || 'U')[0].toUpperCase(),
+            rating: rv.rating,
+            text: rv.review_text || '',
+            time: timeAgo(rv.created_at),
+          })));
+        }
+      }).catch(() => {});
+    }
+
+    // Fetch transaction history
+    transactionApi.list({ limit: 10 }).then(r => {
+      if (r.data.transactions?.length > 0) {
+        const userId = profileUser?.id;
+        setTxHistory(r.data.transactions.map(t => ({
+          name: t.listing_title || 'Transaction',
+          price: Number(t.agreed_price || 0),
+          type: t.buyer_id === userId ? 'Bought' : 'Sold',
+          time: timeAgo(t.created_at),
+        })));
+      }
+    }).catch(() => {});
+  }, [profileUser?.id]);
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: G.bg }}>
       <TopBar title={T?.myProfile || "My Profile"} onBack={back} onHome={back}
@@ -4808,8 +5445,8 @@ function Profile({ back, go, user, T }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 }}>
             <span style={{ color: G.cyan, fontSize: 16 }}>★★★★★</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: G.cyan }}>4.9</span>
-            <span style={{ fontSize: 12, color: G.muted }}>(127 reviews)</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: G.cyan }}>{profileStats?.rating?.toFixed(1) || profileUser?.rating || '4.9'}</span>
+            <span style={{ fontSize: 12, color: G.muted }}>({profileStats?.totalReviews || reviews.length} reviews)</span>
           </div>
           {/* badges */}
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 12, flexWrap: "wrap" }}>
@@ -4834,12 +5471,12 @@ function Profile({ back, go, user, T }) {
         <div style={{ padding: "0 14px 14px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
             {[
-              { v: "47", lb: "Total Sales", Ic: Icon.Tag, col: G.green },
-              { v: "96", lb: "Trust Score", Ic: Icon.Shield, col: G.green },
-              { v: "127", lb: "Reviews", Ic: Icon.Star, col: G.cyan },
-              { v: "5", lb: "Active Listings", Ic: Icon.Store, col: G.green },
-              { v: "32K", lb: "Avg. Sale EGP", Ic: Icon.Wallet, col: G.green },
-              { v: "100%", lb: "Response Rate", Ic: Icon.Chat, col: G.cyan },
+              { v: String(profileStats?.totalSales ?? 0), lb: "Total Sales", Ic: Icon.Tag, col: G.green },
+              { v: String(profileStats?.trustScore ?? 0), lb: "Trust Score", Ic: Icon.Shield, col: G.green },
+              { v: String(profileStats?.totalReviews ?? reviews.length), lb: "Reviews", Ic: Icon.Star, col: G.cyan },
+              { v: String(profileStats?.activeListings ?? 0), lb: "Active Listings", Ic: Icon.Store, col: G.green },
+              { v: "—", lb: "Avg. Sale EGP", Ic: Icon.Wallet, col: G.green },
+              { v: "—", lb: "Response Rate", Ic: Icon.Chat, col: G.cyan },
             ].map((s, i) => (
               <div key={i} style={{
                 background: G.card, borderRadius: 14,
@@ -4859,7 +5496,7 @@ function Profile({ back, go, user, T }) {
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: G.text }}>🛡️ Trust Score Breakdown</span>
-              <span style={{ fontSize: 14, fontWeight: 900, color: G.green }}>96/100</span>
+              <span style={{ fontSize: 14, fontWeight: 900, color: G.green }}>{profileStats?.trustScore ?? 0}/100</span>
             </div>
             {[
               { lb: "Successful Transactions", val: 90, max: 100, col: G.green },
@@ -4937,12 +5574,9 @@ function Profile({ back, go, user, T }) {
 
           {tab === "history" && (
             <div>
-              {[
-                { name: "MacBook Air M2", price: 45000, type: "Sold", time: "2 days ago", col: G.green },
-                { name: "AirPods Pro", price: 4500, type: "Bought", time: "1 week ago", col: G.green },
-                { name: "iPad Pro", price: 32000, type: "Sold", time: "2 weeks ago", col: G.green },
-                { name: "PS5 Controller", price: 3200, type: "Bought", time: "1 month ago", col: G.green },
-              ].map((tx, i) => (
+              {(txHistory.length > 0 ? txHistory : [
+                { name: "No transactions yet", price: 0, type: "", time: "", col: G.muted },
+              ]).map((tx, i) => (
                 <div key={i} style={{
                   background: G.card, borderRadius: 14, padding: "12px 14px",
                   marginBottom: 8, border: `1px solid ${G.border}`,
@@ -5003,6 +5637,33 @@ function Settings({ back, go, user, T, isDark, setIsDark, lang, setLang }) {
   const [toastMsg, setToastMsg] = useState("");
   const [name, setName] = useState(settingsUser?.name || 'User');
   const [bio, setBio] = useState(settingsUser?.bio || 'Member on Kaero 🇪🇬');
+
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [settingsTxList, setSettingsTxList] = useState([]);
+  const [totalIncome, setTotalIncome] = useState(0);
+
+  useEffect(() => {
+    walletApi.me().then(r => {
+      const bal = Number(r.data.balance ?? 0) + Number(r.data.pending ?? 0);
+      setWalletBalance(bal);
+      setTotalIncome(Number(r.data.total_earned ?? bal));
+    }).catch(() => {});
+    // Fetch transaction history
+    transactionApi.list({ limit: 30 }).then(r => {
+      if (r.data.transactions?.length > 0) {
+        const uid = settingsUser?.id;
+        setSettingsTxList(r.data.transactions.map(t => ({
+          name: t.listing_title || 'Transaction',
+          price: Number(t.agreed_price || 0),
+          type: t.buyer_id === uid ? 'Bought' : 'Sold',
+          time: timeAgo(t.created_at),
+          col: G.green,
+          buyer: t.buyer_id === uid ? (t.seller_name || 'Seller') : (t.buyer_name || 'Buyer'),
+          method: t.payment_method || 'Escrow',
+        })));
+      }
+    }).catch(() => {});
+  }, []);
 
   const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(""), 2500); };
 
@@ -5086,7 +5747,17 @@ function Settings({ back, go, user, T, isDark, setIsDark, lang, setLang }) {
               }} />
           </div>
         ))}
-        <Btn full col={G.green} onClick={() => { showToast(T?.profileSaved2 || "Profile saved ✅"); setShowEditProfile(false); }}>
+        <Btn full col={G.green} onClick={async () => {
+          try {
+            await userApi.updateMe({ full_name: name, bio });
+            const updated = { ...settingsUser, name, full_name: name, bio };
+            setStoredUser(updated);
+            showToast(T?.profileSaved2 || "Profile saved ✅");
+            setShowEditProfile(false);
+          } catch (e) {
+            showToast("Save failed: " + (e.response?.data?.error || "Unknown error"));
+          }
+        }}>
           {T?.saveChanges2 || "Save Changes"}
         </Btn>
       </div>
@@ -5218,7 +5889,7 @@ function Settings({ back, go, user, T, isDark, setIsDark, lang, setLang }) {
               { v: `${(settingsUser?.rating || 4.9)}`, lb: "Your Rating", ic: "⭐", col: G.cyan },
               { v: `${settingsUser?.reviews || 0}`, lb: "Reviews", ic: "💬", col: G.cyan },
               { v: `${settingsUser?.sales || 0}`, lb: "Total Sales", ic: "🏷️", col: G.green },
-              { v: "45,320", lb: "Income (EGP)", ic: "💰", col: G.indigo },
+              { v: totalIncome.toLocaleString(), lb: "Income (EGP)", ic: "💰", col: G.indigo },
             ].map((s, i) => (
               <div key={i} style={{ background: G.cardHi, borderRadius: 12, padding: "12px 10px", textAlign: "center", border: `1px solid ${G.border}` }}>
                 <div style={{ fontSize: 18 }}>{s.ic}</div>
@@ -5261,25 +5932,18 @@ function Settings({ back, go, user, T, isDark, setIsDark, lang, setLang }) {
           <div style={{ fontSize: 11, color: G.muted, marginBottom: 4 }}>{T?.showingLast || "Showing last 30 transactions"}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color: G.green }}>45,320</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: G.green }}>{totalIncome.toLocaleString()}</div>
               <div style={{ fontSize: 10, color: G.muted }}>Total Income (EGP)</div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color: G.green }}>12</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: G.green }}>{settingsTxList.length}</div>
               <div style={{ fontSize: 10, color: G.muted }}>Transactions</div>
             </div>
           </div>
         </div>
-        {[
-          { name: "MacBook Air M2", price: 45000, type: "Sold", time: "2 days ago", col: G.green, buyer: "Youssef M.", method: "Escrow" },
-          { name: "AirPods Pro", price: 4500, type: "Bought", time: "4 days ago", col: G.green, buyer: "Ahmed K.", method: "Cash" },
-          { name: "iPad Pro 12.9\"", price: 32000, type: "Sold", time: "1 week ago", col: G.green, buyer: "Sara K.", method: "Escrow" },
-          { name: "PS5 Controller", price: 3200, type: "Bought", time: "1 week ago", col: G.green, buyer: "Omar F.", method: "Vodafone Cash" },
-          { name: "Samsung Galaxy Buds", price: 2800, type: "Sold", time: "2 weeks ago", col: G.green, buyer: "Lina K.", method: "Escrow" },
-          { name: "Canon EOS R50 Lens", price: 8500, type: "Bought", time: "2 weeks ago", col: G.green, buyer: "Nour A.", method: "Card" },
-          { name: "iPhone 12 Pro", price: 15000, type: "Sold", time: "3 weeks ago", col: G.green, buyer: "Karim H.", method: "Escrow" },
-          { name: "Sony WH XM4", price: 5500, type: "Bought", time: "1 month ago", col: G.green, buyer: "Ziad M.", method: "InstaPay" },
-        ].map((tx, i) => (
+        {(settingsTxList.length > 0 ? settingsTxList : [
+          { name: "No transactions yet", price: 0, type: "", time: "", col: G.muted, buyer: "", method: "" },
+        ]).map((tx, i) => (
           <div key={i} style={{
             background: G.card, borderRadius: 14, padding: "12px 14px",
             marginBottom: 8, border: `1px solid ${G.border}`,
@@ -5423,8 +6087,8 @@ function Settings({ back, go, user, T, isDark, setIsDark, lang, setLang }) {
             }}>+ Add Payment Method</button>
           </div>
         )}
-        <Row icon="🏦" label={T?.escrowWalletLabel2 || "Escrow Wallet"} sub={`45,320 EGP ${T?.available2 || 'available'}`}
-          onClick={() => showToast("Escrow: 45,320 EGP safe 🛡️")} />
+        <Row icon="🏦" label={T?.escrowWalletLabel2 || "Escrow Wallet"} sub={`${walletBalance.toLocaleString()} EGP ${T?.available2 || 'available'}`}
+          onClick={() => showToast(`Escrow: ${walletBalance.toLocaleString()} EGP safe`)} />
         <Row icon="📊" label={T?.transactionHistory || "Transaction History"} onClick={() => setShowTransactions(true)} />
 
         <Section title={T?.securitySection || "SECURITY"} />
@@ -5441,7 +6105,7 @@ function Settings({ back, go, user, T, isDark, setIsDark, lang, setLang }) {
         <Row icon="💬" label={T?.contactSupport || "Contact Support"} sub={T?.liveChat || "Live chat · Arabic & English"} onClick={() => setShowContact(true)} />
 
         <div style={{ textAlign: "center", marginTop: 20 }}>
-          <button onClick={() => showToast("Signed out. See you soon!")} style={{
+          <button onClick={() => { clearAuth(); go("__signout__"); }} style={{
             background: "none", border: "none", cursor: "pointer",
             fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: G.green
           }}>
@@ -5461,17 +6125,31 @@ function Settings({ back, go, user, T, isDark, setIsDark, lang, setLang }) {
 ═══════════════════════════════════════════════════════════ */
 function Notifications({ back, T }) {
   const [tab, setTab] = useState("all");
-  const notifs = [
+  const [notifs, setNotifs] = useState([
     { ic: "🤖", text: "Kaero Alert: New iPhone 13 Pro listed 0.4km away at 16,500 EGP, matches your search history!", time: "just now", col: G.green, unread: true, ai: true },
     { ic: "💬", text: "Youssef M. made an offer: 16,000 EGP for iPhone 13 Pro", time: "2m", col: G.green, unread: true },
     { ic: "🔄", text: "Lina K. added exchange offer: AirPods Pro + 16,500 EGP, view now", time: "15m", col: G.green, unread: true },
-    { ic: "🔔", text: "New iPhone 15 Pro listing nearby · 32,000 EGP · 0.3 km", time: "30m", col: G.green, unread: true },
-    { ic: "🔄", text: "Sara B. wants to swap iPad mini for your Sony headphones", time: "1h", col: G.green, unread: true },
     { ic: "✅", text: "MacBook Air sold! 45,000 EGP released from escrow", time: "2h", col: G.green, unread: false },
-    { ic: "⭐", text: "New review from Karim H. · 5 stars: 'Perfect transaction!'", time: "3h", col: G.green, unread: false },
-    { ic: "📍", text: "Price drop alert: Sony WH-1000XM5 now 7,800 EGP within 1km", time: "5h", col: G.green, unread: false },
-    { ic: "🛡️", text: "Reminder: Your escrow inspection window closes in 24 hours", time: "8h", col: G.green, unread: false },
-  ];
+  ]);
+
+  // Fetch real notifications
+  useEffect(() => {
+    notificationApi.list().then(r => {
+      if (r.data.notifications?.length > 0) {
+        setNotifs(r.data.notifications.map(n => adaptNotification(n)));
+      }
+    }).catch(() => {});
+    // Mark all as read
+    notificationApi.readAll().catch(() => {});
+  }, []);
+
+  const handleNotifTap = (notif) => {
+    if (notif.unread && notif._raw?.id) {
+      notificationApi.readOne(notif._raw.id).catch(() => {});
+      setNotifs(prev => prev.map(n => n === notif ? { ...n, unread: false } : n));
+    }
+  };
+
   const aiNotifs = notifs.filter(n => n.ai);
   const shown = tab === "ai" ? aiNotifs : notifs;
 
@@ -5522,12 +6200,12 @@ function Notifications({ back, T }) {
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px" }}>
         {shown.map((n, i) => (
-          <div key={i} style={{
+          <div key={i} onClick={() => handleNotifTap(n)} style={{
             background: n.ai ? `linear-gradient(135deg,${G.greenDim},${G.card})` : G.card,
             borderRadius: 14, padding: "12px 13px",
-            marginBottom: 8, border: `1.5px solid ${n.unread ? n.col + "44" : G.border}`,
-            display: "flex", gap: 10,
-            boxShadow: n.unread ? `0 2px 12px ${n.col}22` : "none"
+            marginBottom: 8, border: `1.5px solid ${n.unread ? (n.col || G.green) + "44" : G.border}`,
+            display: "flex", gap: 10, cursor: "pointer",
+            boxShadow: n.unread ? `0 2px 12px ${(n.col || G.green)}22` : "none"
           }}>
             {n.ai ? (
               <div style={{
@@ -5583,6 +6261,15 @@ function KaeroApp() {
   const T = TR[lang];
 
   const go = (to, data = null) => {
+    if (to === '__signout__') {
+      clearAuth();
+      setUser(null);
+      setAuthed(false);
+      setScreen('login');
+      setHistory([]);
+      setPayload(null);
+      return;
+    }
     setHistory(h => [...h, { screen, payload }]);
     setPayload(data);
     setScreen(to);
@@ -5672,9 +6359,7 @@ function KaeroApp() {
             {screen === "buy_list" && <BuyList go={go} back={back} data={payload} {...commonProps} />}
             {screen === "voice_search" && <VoiceSearch back={back} go={go} {...commonProps} />}
             {screen === "product" && <ProductDetail item={payload} back={back} go={go} {...commonProps} />}
-            {screen === "sell" && <Sell back={goHome} {...commonProps} go={(s, d) => {
-              if (s === "store") { window.__kaeroPublish = true; } go(s, d);
-            }} />}
+            {screen === "sell" && <Sell back={goHome} {...commonProps} go={go} />}
             {screen === "market" && <Market back={goHome} go={go} {...commonProps} />}
             {screen === "store" && <MyStore back={goHome} go={go} {...commonProps} />}
             {screen === "store_offers" && <StoreOffers item={payload} back={back} go={go} {...commonProps} />}
